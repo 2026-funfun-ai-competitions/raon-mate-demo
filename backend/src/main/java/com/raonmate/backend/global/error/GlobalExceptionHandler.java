@@ -27,4 +27,24 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.badRequest().body(response);
     }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNotFound(ResourceNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler({ConflictException.class, IllegalStateException.class})
+    public ResponseEntity<ApiErrorResponse> handleConflict(RuntimeException exception) {
+        return error(HttpStatus.CONFLICT, "INVALID_STATE", exception.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadRequest(IllegalArgumentException exception) {
+        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", exception.getMessage());
+    }
+
+    private ResponseEntity<ApiErrorResponse> error(HttpStatus status, String code, String message) {
+        var response = new ApiErrorResponse(Instant.now(), status.value(), code, message, Map.of());
+        return ResponseEntity.status(status).body(response);
+    }
 }
