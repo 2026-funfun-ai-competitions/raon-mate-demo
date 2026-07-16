@@ -105,3 +105,21 @@ export function MegaphoneIcon(props: SVGProps<SVGSVGElement>) {
     </IconBase>
   )
 }
+
+export function CheckCircleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+    </IconBase>
+  )
+}
+
+export function CompassIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15 9-4.5 1.5L9 15l4.5-1.5Z" />
+    </IconBase>
+  )
+}

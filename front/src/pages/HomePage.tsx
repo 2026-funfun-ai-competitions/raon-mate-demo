@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import bannerImage from '@/assets/banner.png'
 import {
   CalculatorIcon,
@@ -66,14 +67,14 @@ function HomePage() {
             <br />
             워크숍 준비를 한 번에 도와드려요.
           </p>
-          <button
-            type="button"
+          <Link
+            to="/workshops/new"
             className="flex items-center gap-2 rounded-full bg-violet-600 px-6 py-3 font-semibold text-white hover:bg-violet-700"
           >
             <RocketIcon className="h-5 w-5" />
             워크숍 시작하기
             <ChevronRightIcon className="h-4 w-4" />
-          </button>
+          </Link>
         </div>
 
         <img src={bannerImage} alt="" className="w-96 flex-shrink-0" />
