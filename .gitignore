@@ -1,7 +1,9 @@
 .DS_Store
+.env
 .idea/
 *.iml
 frontend/node_modules/
 frontend/dist/
 backend/.gradle/
 backend/build/
+backend/data/

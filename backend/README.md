@@ -8,8 +8,67 @@ Java 21과 Spring Boot 4.1 기반 API 서버입니다.
 ./gradlew bootRun
 ```
 
-서버는 기본적으로 `http://localhost:8080`에서 실행됩니다. 상태 확인은
+서버는 기본적으로 `http://localhost:8085`에서 실행됩니다. 상태 확인은
 `GET /actuator/health`를 사용합니다.
+
+데모 데이터는 `backend/data/raonmate.mv.db`에 저장됩니다. H2 콘솔은
+`http://localhost:8085/h2-console`에서 열 수 있으며 JDBC URL은
+`jdbc:h2:file:./data/raonmate`입니다.
+
+## API 문서
+
+- Swagger UI: `http://localhost:8085/swagger-ui.html`
+
+## Gemini 장소 추천
+
+Google AI Studio에서 발급한 키를 환경 변수로 설정하면 워크숍 조건과 설문 결과를 반영한
+Google Maps 기반 장소 추천 API를 사용할 수 있습니다.
+
+저장소 루트의 `.env`에 키를 입력한 뒤 환경 변수를 불러와 실행합니다.
+
+```bash
+set -a
+source ../.env
+set +a
+./gradlew bootRun -PskipFrontendBuild
+```
+
+`POST /api/workshops/{workshopId}/venue-recommendations` 요청 예시:
+
+```json
+{
+  "latitude": 37.5665,
+  "longitude": 126.9780,
+  "maxResults": 5,
+  "additionalRequest": "대중교통 접근성이 좋은 곳을 우선해 주세요."
+}
+```
+
+위도와 경도는 함께 생략할 수 있으며, 생략하면 워크숍의 출발 위치 문자열을 기준으로 검색합니다.
+API 키가 없거나 Gemini 호출에 실패하면 대체 추천 없이 `503 AI_SERVICE_UNAVAILABLE`을 반환합니다.
+Google Maps 근거가 확인된 장소만 반환하며, 각 장소에는 `mapUri`와 `placeId`가 포함됩니다.
+동일 조건의 결과는 기본 10분 동안 캐시되고 새 생성 요청은 워크숍별 10초 간격으로 제한됩니다.
+
+공개 배포에서는 `.env`의 `RECOMMENDATION_API_TOKEN`을 설정하고 요청에 다음 헤더를 추가하세요.
+토큰을 설정하지 않으면 로컬 개발 편의를 위해 헤더 검사를 수행하지 않습니다.
+
+```text
+X-Recommendation-Key: 설정한_토큰
+```
+- OpenAPI JSON: `http://localhost:8085/v3/api-docs`
+
+## 워크숍 설문 API
+
+```text
+POST /api/workshops                         워크숍 생성
+GET  /api/workshops                         워크숍 목록
+GET  /api/workshops/{id}                    워크숍 조회
+POST /api/workshops/{id}/survey/generate    기본 설문 생성
+GET  /api/workshops/{id}/survey             설문 및 응답 수 조회
+POST /api/workshops/{id}/survey/open        설문 공개
+POST /api/workshops/{id}/survey/close       설문 종료
+POST /api/workshops/{id}/survey/responses   참여자 응답 제출
+```
 
 ## 테스트
 
@@ -40,7 +99,7 @@ java -jar build/libs/raon-mate-backend-0.0.1-SNAPSHOT.jar
 
 | 이름 | 기본값 | 설명 |
 | --- | --- | --- |
-| `SERVER_PORT` | `8080` | 서버 포트 |
+| `SERVER_PORT` | `8085` | 서버 포트 |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173` | 허용할 프론트엔드 Origin 목록 |
 
 운영 환경에서는 `CORS_ALLOWED_ORIGINS`를 실제 프론트엔드 주소로 지정하세요.
