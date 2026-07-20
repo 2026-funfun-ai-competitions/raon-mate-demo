@@ -17,6 +17,12 @@ public record VenueRecommendationResponse(
             String category,
             Integer estimatedCostPerPerson,
             BigDecimal estimatedTotalCost,
+            Integer estimatedCostMinPerPerson,
+            Integer estimatedCostMaxPerPerson,
+            BigDecimal estimatedTotalCostMin,
+            BigDecimal estimatedTotalCostMax,
+            String costType,
+            List<String> costAssumptions,
             int score,
             List<String> tags,
             List<String> reasons,
@@ -24,6 +30,7 @@ public record VenueRecommendationResponse(
             Double rating,
             Integer reviewCount,
             String imageUri,
+            List<String> photoAttributions,
             String mapUri,
             String placeId
     ) {}

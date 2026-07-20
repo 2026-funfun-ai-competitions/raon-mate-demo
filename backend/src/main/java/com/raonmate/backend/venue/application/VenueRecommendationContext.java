@@ -20,7 +20,8 @@ public record VenueRecommendationContext(
         Double latitude,
         Double longitude,
         int maxResults,
-        String additionalRequest
+        String additionalRequest,
+        List<VenueCandidate> candidates
 ) {
     public VenueRecommendationContext(String workshopTitle, String departureLocation,
                                       int expectedParticipants, BigDecimal budgetPerPerson,
@@ -30,7 +31,14 @@ public record VenueRecommendationContext(
                                       String additionalRequest) {
         this(workshopTitle, departureLocation, expectedParticipants, budgetPerPerson,
                 requiredConditions, null, null, null, null, totalResponses, surveyResponses,
-                latitude, longitude, maxResults, additionalRequest);
+                latitude, longitude, maxResults, additionalRequest, List.of());
+    }
+
+    public VenueRecommendationContext withCandidates(List<VenueCandidate> values) {
+        return new VenueRecommendationContext(
+                workshopTitle, departureLocation, expectedParticipants, budgetPerPerson, requiredConditions,
+                workshopType, preferredStartDate, preferredEndDate, purposeKeywords, totalResponses,
+                surveyResponses, latitude, longitude, maxResults, additionalRequest, List.copyOf(values));
     }
 
     public record SurveyResponseSummary(String question, List<AnswerCount> answers) {}

@@ -43,6 +43,30 @@ class ApiLoggingFilterTests {
         assertThat(response.getContentAsString()).isEqualTo("healthy");
     }
 
+    @Test
+    void decodesJsonAsUtf8WhenServletReportsDefaultLatin1Encoding() {
+        ApiLoggingFilter filter = filter();
+        String json = "{\"message\":\"장소 추천 요청에 실패했습니다.\"}";
+
+        String loggedBody = ReflectionTestUtils.invokeMethod(
+                filter, "body", json.getBytes(StandardCharsets.UTF_8),
+                "application/json", "ISO-8859-1");
+
+        assertThat(loggedBody).isEqualTo(json);
+    }
+
+    @Test
+    void honorsExplicitJsonCharset() {
+        ApiLoggingFilter filter = filter();
+        String json = "{\"message\":\"장소 추천 요청에 실패했습니다.\"}";
+
+        String loggedBody = ReflectionTestUtils.invokeMethod(
+                filter, "body", json.getBytes(StandardCharsets.UTF_16),
+                "application/json;charset=UTF-16", "ISO-8859-1");
+
+        assertThat(loggedBody).isEqualTo(json);
+    }
+
     private ApiLoggingFilter filter() {
         ApiLoggingFilter filter = new ApiLoggingFilter(new ObjectMapper());
         ReflectionTestUtils.setField(filter, "maxBodyLength", 10_000);

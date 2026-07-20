@@ -1,26 +1,11 @@
 import { useEffect, useState } from 'react'
 import {
-  ActivityIcon,
   ArrowLeftIcon,
-  ChevronDownIcon,
   ChevronRightIcon,
-  DiningIcon,
-  HomeIcon,
-  LocationIcon,
-  RoomIcon,
   SparkleIcon,
   StarIcon,
 } from '@/components/icons'
 import { recommendVenues, selectVenues, type Venue } from '@/api/workshop'
-
-const filters = [
-  { label: '예산', icon: null },
-  { label: '거리', icon: LocationIcon },
-  { label: '숙소 타입', icon: HomeIcon },
-  { label: '액티비티', icon: ActivityIcon },
-  { label: '세미나실', icon: RoomIcon },
-  { label: '식사 포함 여부', icon: DiningIcon },
-]
 
 // AI가 생성하는 값이라 숫자가 아니거나 비어있을 수 있어 방어적으로 포맷한다.
 function formatWon(value: number | null | undefined) {
@@ -49,6 +34,7 @@ function Step2PlaceRecommendation({
   const [venues, setVenues] = useState<Venue[]>(initialVenues)
   const [isLoading, setIsLoading] = useState(initialVenues.length === 0)
   const [error, setError] = useState<string | null>(null)
+  const [selectionError, setSelectionError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
@@ -89,12 +75,20 @@ function Step2PlaceRecommendation({
   }, [workshopId, retryCount, onVenuesLoaded])
 
   async function handleNext() {
+    if (selectedIds.length === 0) {
+      setSelectionError('다음 단계로 이동하려면 장소를 한 곳 이상 선택해 주세요.')
+      return
+    }
     setIsSaving(true)
+    setSelectionError(null)
     try {
       await selectVenues(workshopId, selectedIds)
       onNext()
-    } catch {
-      onNext()
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        '선택한 장소를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
+      setSelectionError(message)
     } finally {
       setIsSaving(false)
     }
@@ -117,24 +111,6 @@ function Step2PlaceRecommendation({
         >
           조건 수정하기
         </button>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {filters.map(({ label, icon: Icon }) => (
-          <button
-            key={label}
-            type="button"
-            className="flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
-          >
-            {Icon ? (
-              <Icon className="h-3.5 w-3.5 text-slate-400" />
-            ) : (
-              <span className="text-xs font-semibold text-slate-400">₩</span>
-            )}
-            {label}
-            <ChevronDownIcon className="h-3.5 w-3.5 text-slate-400" />
-          </button>
-        ))}
       </div>
 
       {isLoading && (
@@ -189,6 +165,16 @@ function Step2PlaceRecommendation({
                         AI 추천 1위
                       </span>
                     )}
+                    {venue.imageUri === '/images/venues/workshop-default.png' && (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-slate-800/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                        기본 이미지
+                      </span>
+                    )}
+                    {venue.photoAttributions && venue.photoAttributions.length > 0 && (
+                      <span className="absolute bottom-1 left-1 max-w-[90%] truncate rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white">
+                        사진: {venue.photoAttributions.join(', ')}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -223,15 +209,35 @@ function Step2PlaceRecommendation({
                       ))}
                     </ul>
                   )}
+                  {venue.cautions && venue.cautions.length > 0 && (
+                    <ul className="flex flex-col gap-0.5 text-xs text-amber-600">
+                      {venue.cautions.map((caution) => (
+                        <li key={caution}>※ {caution}</li>
+                      ))}
+                    </ul>
+                  )}
                   <div className="mt-1 flex items-end justify-between">
                     <div>
                       <p className="text-xs text-slate-400">예상 비용</p>
-                      <p className="font-semibold text-slate-800">
-                        {formatWon(venue.estimatedTotalCost)}원
-                        <span className="ml-1 text-xs font-normal text-slate-400">
-                          (1인당 {formatWon(venue.estimatedCostPerPerson)}원)
-                        </span>
-                      </p>
+                      {venue.estimatedTotalCostMin == null || venue.estimatedTotalCostMax == null ? (
+                        <p className="font-semibold text-slate-600">업체 문의 필요</p>
+                      ) : (
+                        <div>
+                          <p className="font-semibold text-slate-800">
+                            약 {formatWon(venue.estimatedTotalCostMin)}~
+                            {formatWon(venue.estimatedTotalCostMax)}원
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            1인당 {formatWon(venue.estimatedCostMinPerPerson)}~
+                            {formatWon(venue.estimatedCostMaxPerPerson)}원 · AI 추정
+                          </p>
+                          {venue.costAssumptions && venue.costAssumptions.length > 0 && (
+                            <p className="mt-0.5 text-[10px] text-slate-400">
+                              가정: {venue.costAssumptions.join(', ')}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       {venue.mapUri && (
@@ -275,22 +281,19 @@ function Step2PlaceRecommendation({
             이전 단계로
           </button>
           <span className="text-sm text-slate-500">{selectedIds.length}곳 선택됨</span>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          {selectionError && <p className="text-xs text-red-500">{selectionError}</p>}
           <button
             type="button"
-            className="flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+            onClick={handleNext}
+            disabled={isSaving || isLoading || Boolean(error)}
+            className="flex items-center justify-center gap-1 rounded-full bg-violet-600 px-6 py-3 font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
           >
-            비교하기
+            다음 단계로
+            <ChevronRightIcon className="h-4 w-4" />
           </button>
         </div>
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={isSaving}
-          className="flex items-center justify-center gap-1 rounded-full bg-violet-600 px-6 py-3 font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
-        >
-          다음 단계로
-          <ChevronRightIcon className="h-4 w-4" />
-        </button>
       </div>
     </div>
   )

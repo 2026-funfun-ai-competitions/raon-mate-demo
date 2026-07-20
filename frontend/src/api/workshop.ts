@@ -71,6 +71,12 @@ export interface Venue {
   // AI(Gemini)가 생성하는 값이라 누락되거나 null일 수 있다 — 렌더링 시 방어적으로 다뤄야 한다.
   estimatedCostPerPerson: number | null
   estimatedTotalCost: number | null
+  estimatedCostMinPerPerson: number | null
+  estimatedCostMaxPerPerson: number | null
+  estimatedTotalCostMin: number | null
+  estimatedTotalCostMax: number | null
+  costType: 'AI_ESTIMATE' | 'CONFIRMED' | null
+  costAssumptions: string[] | null
   score: number | null
   tags: string[] | null
   reasons: string[] | null
@@ -78,6 +84,7 @@ export interface Venue {
   rating: number | null
   reviewCount: number | null
   imageUri: string | null
+  photoAttributions: string[] | null
   mapUri: string | null
   placeId: string
 }
@@ -159,15 +166,27 @@ export function createWorkshop(data: WorkshopCreateRequest) {
   return apiClient.post<WorkshopResponse>('/api/workshops', data).then((res) => res.data)
 }
 
+const venueRecommendationRequests = new Map<string, Promise<VenueRecommendationResponse>>()
+
 // Gemini + Google Maps 호출이 포함돼 있어 응답까지 수십 초가 걸릴 수 있다.
+// React Strict Mode가 개발 환경에서 effect를 두 번 실행하더라도 같은 조건의 진행 중
+// 요청을 공유해 서버의 추천 rate limit에 걸리지 않도록 한다.
 export function recommendVenues(workshopId: string, request: VenueRecommendationRequest = {}) {
-  return apiClient
+  const requestKey = `${workshopId}:${JSON.stringify(request)}`
+  const pendingRequest = venueRecommendationRequests.get(requestKey)
+  if (pendingRequest) return pendingRequest
+
+  const recommendationRequest = apiClient
     .post<VenueRecommendationResponse>(
       `/api/workshops/${workshopId}/venue-recommendations`,
       request,
       { timeout: 90_000 },
     )
     .then((res) => res.data)
+    .finally(() => venueRecommendationRequests.delete(requestKey))
+
+  venueRecommendationRequests.set(requestKey, recommendationRequest)
+  return recommendationRequest
 }
 
 export function selectVenues(workshopId: string, placeIds: string[]) {

@@ -21,8 +21,8 @@ Java 21과 Spring Boot 4.1 기반 API 서버입니다.
 
 ## Gemini 장소 추천
 
-Google AI Studio에서 발급한 키를 환경 변수로 설정하면 워크숍 조건과 설문 결과를 반영한
-Google Maps 기반 장소 추천 API를 사용할 수 있습니다.
+Google Places에서 실제 장소 후보를 조회한 뒤 Gemini가 워크숍 조건과 설문 결과에 따라
+후보를 평가하는 장소 추천 API입니다. Gemini가 임의의 장소를 추천 결과에 추가할 수 없습니다.
 
 저장소 루트의 `.env`에 키를 입력한 뒤 환경 변수를 불러와 실행합니다.
 
@@ -46,7 +46,8 @@ set +a
 
 위도와 경도는 함께 생략할 수 있으며, 생략하면 워크숍의 출발 위치 문자열을 기준으로 검색합니다.
 API 키가 없거나 Gemini 호출에 실패하면 대체 추천 없이 `503 AI_SERVICE_UNAVAILABLE`을 반환합니다.
-Google Maps 근거가 확인된 장소만 반환하며, 각 장소에는 `mapUri`와 `placeId`가 포함됩니다.
+Google Places에서 확인된 장소만 반환하며, 각 장소에는 공식 `mapUri`, `placeId`, 평점과
+리뷰 수가 포함됩니다. 신뢰 가능한 워크숍 견적이 없으므로 예상 비용은 `null`로 반환됩니다.
 동일 조건의 결과는 기본 10분 동안 캐시되고 새 생성 요청은 워크숍별 10초 간격으로 제한됩니다.
 
 공개 배포에서는 `.env`의 `RECOMMENDATION_API_TOKEN`을 설정하고 요청에 다음 헤더를 추가하세요.
@@ -101,6 +102,7 @@ java -jar build/libs/raon-mate-backend-0.0.1-SNAPSHOT.jar
 | --- | --- | --- |
 | `SERVER_PORT` | `8085` | 서버 포트 |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173` | 허용할 프론트엔드 Origin 목록 |
+| `GOOGLE_PLACES_API_KEY` | `GEMINI_API_KEY` 값 | Places API (New)가 활성화된 Google Cloud API 키 |
 
 운영 환경에서는 `CORS_ALLOWED_ORIGINS`를 실제 프론트엔드 주소로 지정하세요.
 

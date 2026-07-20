@@ -31,7 +31,7 @@ public class ScheduleController {
     }
 
     @PostMapping("/generate")
-    @Operation(summary = "워크숍 일정 자동 생성", description = "워크숍 유형과 희망 시작일을 기준으로 기본 일정을 생성합니다.")
+    @Operation(summary = "워크숍 AI 일정 생성", description = "워크숍 조건과 선택 장소를 반영해 Gemini가 일정을 생성하며, AI 장애 시 기본 일정을 제공합니다.")
     @ApiResponse(responseCode = "200", description = "일정 생성 완료")
     @ApiResponse(responseCode = "404", description = "워크숍을 찾을 수 없음")
     public ScheduleResponse generate(@PathVariable UUID workshopId) {

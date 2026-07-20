@@ -94,7 +94,7 @@ public class ApiLoggingFilter extends OncePerRequestFilter {
             return "<" + content.length + " bytes>";
         }
 
-        Charset charset = resolveCharset(encoding);
+        Charset charset = resolveCharset(contentType, encoding);
         String value = new String(content, charset);
         if (isJson(contentType)) {
             value = maskJson(value);
@@ -159,11 +159,32 @@ public class ApiLoggingFilter extends OncePerRequestFilter {
         return SENSITIVE_FIELDS.contains(normalized);
     }
 
-    private Charset resolveCharset(String encoding) {
+    private Charset resolveCharset(String contentType, String encoding) {
+        Charset contentTypeCharset = charsetFromContentType(contentType);
+        if (contentTypeCharset != null) {
+            return contentTypeCharset;
+        }
+        // RFC 8259 JSON payloads exchanged between systems are UTF-8. Servlet responses may
+        // still report ISO-8859-1 when no charset was explicitly declared, so do not use that
+        // default to decode JSON log bodies.
+        if (isJson(contentType)) {
+            return StandardCharsets.UTF_8;
+        }
         try {
             return StringUtils.hasText(encoding) ? Charset.forName(encoding) : StandardCharsets.UTF_8;
         } catch (IllegalArgumentException ignored) {
             return StandardCharsets.UTF_8;
+        }
+    }
+
+    private Charset charsetFromContentType(String contentType) {
+        if (!StringUtils.hasText(contentType)) {
+            return null;
+        }
+        try {
+            return MediaType.parseMediaType(contentType).getCharset();
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 
