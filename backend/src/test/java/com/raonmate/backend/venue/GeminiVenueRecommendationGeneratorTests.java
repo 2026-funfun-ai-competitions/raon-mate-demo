@@ -57,6 +57,8 @@ class GeminiVenueRecommendationGeneratorTests {
 
             assertEquals("숲속 연수원", response.recommendations().getFirst().name());
             assertEquals(94, response.recommendations().getFirst().score());
+            assertEquals(new BigDecimal("1600000"), response.recommendations().getFirst().estimatedTotalCost());
+            assertEquals(response.recommendations().getFirst().reasons(), response.recommendations().getFirst().tags());
             assertEquals("https://maps.google.com/example", response.recommendations().getFirst().mapUri());
             assertEquals("places/example", response.sources().getFirst().placeId());
             assertTrue(!requestBody.get().contains("googleMaps"));

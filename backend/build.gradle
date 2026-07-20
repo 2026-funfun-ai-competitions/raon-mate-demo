@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.1.0'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.github.node-gradle.node' version '7.1.0'
 }
 
 group = 'com.raonmate'
@@ -21,9 +22,15 @@ def frontendDirectory = layout.projectDirectory.dir('../frontend')
 def frontendPackageJson = frontendDirectory.file('package.json').asFile
 def frontendDistDirectory = frontendDirectory.dir('dist')
 def generatedFrontendResources = layout.buildDirectory.dir('generated-resources/frontend')
-def npmCommand = System.getProperty('os.name').toLowerCase().contains('windows') ? 'npm.cmd' : 'npm'
 def shouldBuildFrontend = {
     frontendPackageJson.exists() && !project.hasProperty('skipFrontendBuild')
+}
+
+node {
+    version = '22.14.0'
+    download = true
+    nodeProjectDir = frontendDirectory.asFile
+    npmInstallCommand = 'ci'
 }
 
 dependencies {
@@ -51,20 +58,17 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-tasks.register('frontendInstall', Exec) {
+tasks.named('npmInstall') {
     group = 'frontend'
     description = 'Installs frontend dependencies with npm ci.'
-    workingDir frontendDirectory
-    commandLine npmCommand, 'ci'
     onlyIf shouldBuildFrontend
 }
 
-tasks.register('frontendBuild', Exec) {
+tasks.register('frontendBuild', com.github.gradle.node.npm.task.NpmTask) {
     group = 'frontend'
     description = 'Builds the React frontend.'
-    dependsOn 'frontendInstall'
-    workingDir frontendDirectory
-    commandLine npmCommand, 'run', 'build'
+    dependsOn 'npmInstall'
+    args = ['run', 'build']
     onlyIf shouldBuildFrontend
 }
 

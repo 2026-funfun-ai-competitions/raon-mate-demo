@@ -18,6 +18,8 @@ public class Workshop {
     private String title;
     @Column(nullable = false, length = 200)
     private String departureLocation;
+    @Column(length = 200)
+    private String preferredRegion;
     @Column(nullable = false)
     private int expectedParticipants;
     @Column(precision = 15, scale = 0)
@@ -47,13 +49,14 @@ public class Workshop {
 
     protected Workshop() {}
 
-    public Workshop(String title, String departureLocation, int expectedParticipants,
+    public Workshop(String title, String departureLocation, String preferredRegion, int expectedParticipants,
                     BigDecimal budgetPerPerson, LocalDateTime responseDeadline, String requiredConditions,
                     WorkshopType workshopType, LocalDate preferredStartDate, LocalDate preferredEndDate,
                     String purposeKeywords) {
         this.id = UUID.randomUUID();
         this.title = title;
         this.departureLocation = departureLocation;
+        this.preferredRegion = preferredRegion;
         this.expectedParticipants = expectedParticipants;
         this.budgetPerPerson = budgetPerPerson;
         this.responseDeadline = responseDeadline;
@@ -70,7 +73,7 @@ public class Workshop {
                        LocalDate preferredStartDate, LocalDate preferredEndDate,
                        String purposeKeywords, String requiredConditions) {
         this.title = title;
-        this.departureLocation = preferredRegion;
+        this.preferredRegion = preferredRegion;
         this.expectedParticipants = expectedParticipants;
         this.budgetPerPerson = budgetPerPerson;
         this.workshopType = workshopType;
@@ -107,6 +110,9 @@ public class Workshop {
     public UUID getId() { return id; }
     public String getTitle() { return title; }
     public String getDepartureLocation() { return departureLocation; }
+    public String getPreferredRegion() {
+        return preferredRegion == null || preferredRegion.isBlank() ? departureLocation : preferredRegion;
+    }
     public int getExpectedParticipants() { return expectedParticipants; }
     public BigDecimal getBudgetPerPerson() { return budgetPerPerson; }
     public LocalDateTime getResponseDeadline() { return responseDeadline; }

@@ -13,7 +13,8 @@ import com.raonmate.backend.workshop.domain.WorkshopType;
 
 public record WorkshopCreateRequest(
         @NotBlank @Size(max = 100) String title,
-        @NotBlank @Size(max = 200) String departureLocation,
+        @Size(max = 200) String departureLocation,
+        @NotBlank @Size(max = 200) String preferredRegion,
         @Min(2) @Max(500) int expectedParticipants,
         @DecimalMin(value = "0", inclusive = false) BigDecimal budgetPerPerson,
         @Future LocalDateTime responseDeadline,
@@ -26,8 +27,18 @@ public record WorkshopCreateRequest(
     public WorkshopCreateRequest(String title, String departureLocation, int expectedParticipants,
                                  BigDecimal budgetPerPerson, LocalDateTime responseDeadline,
                                  String requiredConditions) {
-        this(title, departureLocation, expectedParticipants, budgetPerPerson, responseDeadline,
+        this(title, departureLocation, departureLocation, expectedParticipants, budgetPerPerson, responseDeadline,
                 requiredConditions, null, null, null, null);
+    }
+
+    public WorkshopCreateRequest(String title, String preferredRegion, int expectedParticipants,
+                                 BigDecimal budgetPerPerson, LocalDateTime responseDeadline,
+                                 String requiredConditions, WorkshopType workshopType,
+                                 LocalDate preferredStartDate, LocalDate preferredEndDate,
+                                 String purposeKeywords) {
+        this(title, preferredRegion, preferredRegion, expectedParticipants, budgetPerPerson,
+                responseDeadline, requiredConditions, workshopType, preferredStartDate,
+                preferredEndDate, purposeKeywords);
     }
 
     public WorkshopCreateRequest {

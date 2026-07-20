@@ -1,5 +1,6 @@
 package com.raonmate.backend.venue.api;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -15,9 +16,14 @@ public record VenueRecommendationResponse(
             String address,
             String category,
             Integer estimatedCostPerPerson,
+            BigDecimal estimatedTotalCost,
             int score,
+            List<String> tags,
             List<String> reasons,
             List<String> cautions,
+            Double rating,
+            Integer reviewCount,
+            String imageUri,
             String mapUri,
             String placeId
     ) {}

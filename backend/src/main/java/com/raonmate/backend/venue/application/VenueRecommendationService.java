@@ -63,7 +63,7 @@ public class VenueRecommendationService {
                 .toList();
 
         var context = new VenueRecommendationContext(
-                workshop.getTitle(), workshop.getDepartureLocation(), workshop.getExpectedParticipants(),
+                workshop.getTitle(), workshop.getPreferredRegion(), workshop.getExpectedParticipants(),
                 workshop.getBudgetPerPerson(), workshop.getRequiredConditions(), workshop.getWorkshopType(),
                 workshop.getPreferredStartDate(), workshop.getPreferredEndDate(), workshop.getPurposeKeywords(),
                 totalResponses, summaries,

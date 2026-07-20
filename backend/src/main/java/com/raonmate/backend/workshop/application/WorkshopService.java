@@ -21,7 +21,9 @@ public class WorkshopService {
 
     @Transactional
     public WorkshopResponse create(WorkshopCreateRequest request) {
-        Workshop workshop = new Workshop(request.title(), request.departureLocation(),
+        String departureLocation = request.departureLocation() == null || request.departureLocation().isBlank()
+                ? request.preferredRegion() : request.departureLocation();
+        Workshop workshop = new Workshop(request.title(), departureLocation, request.preferredRegion(),
                 request.expectedParticipants(), request.budgetPerPerson(), request.responseDeadline(),
                 request.requiredConditions(), request.workshopType(), request.preferredStartDate(),
                 request.preferredEndDate(), request.purposeKeywords());

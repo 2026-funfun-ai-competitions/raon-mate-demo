@@ -55,7 +55,7 @@ app:
     model: ${GEMINI_MODEL:gemini-3.5-flash}
     base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
     connect-timeout: ${GEMINI_CONNECT_TIMEOUT:3s}
-    read-timeout: ${GEMINI_READ_TIMEOUT:30s}
+    read-timeout: ${GEMINI_READ_TIMEOUT:90s}
     cache-ttl: ${GEMINI_CACHE_TTL:10m}
     minimum-request-interval: ${GEMINI_MINIMUM_REQUEST_INTERVAL:10s}
     access-token: ${RECOMMENDATION_API_TOKEN:}

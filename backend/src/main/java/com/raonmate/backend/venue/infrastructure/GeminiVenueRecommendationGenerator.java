@@ -5,6 +5,7 @@ import com.raonmate.backend.venue.api.VenueRecommendationResponse;
 import com.raonmate.backend.venue.application.VenueRecommendationContext;
 import com.raonmate.backend.venue.application.VenueRecommendationGenerator;
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.net.http.HttpClient;
 import java.net.URLEncoder;
@@ -53,7 +54,7 @@ public class GeminiVenueRecommendationGenerator implements VenueRecommendationGe
             @Value("${app.gemini.model:gemini-3.5-flash}") String model,
             @Value("${app.gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
             @Value("${app.gemini.connect-timeout:3s}") Duration connectTimeout,
-            @Value("${app.gemini.read-timeout:30s}") Duration readTimeout) {
+            @Value("${app.gemini.read-timeout:90s}") Duration readTimeout) {
         HttpClient httpClient = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(readTimeout);
@@ -78,14 +79,27 @@ public class GeminiVenueRecommendationGenerator implements VenueRecommendationGe
                     .body(body)
                     .retrieve()
                     .body(JsonNode.class);
-            return parseResponse(response, context.maxResults());
+            return parseResponse(response, context.maxResults(), context.expectedParticipants());
         } catch (ExternalAiServiceException exception) {
             throw exception;
         } catch (RestClientException exception) {
+            if (hasCause(exception, java.net.http.HttpTimeoutException.class)) {
+                throw new ExternalAiServiceException(
+                        "Gemini 장소 추천 응답 시간이 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.", exception);
+            }
             throw new ExternalAiServiceException("Gemini 장소 추천 요청에 실패했습니다.", exception);
         } catch (JacksonException | IllegalArgumentException exception) {
             throw new ExternalAiServiceException("Gemini가 올바른 장소 추천 결과를 반환하지 않았습니다.", exception);
         }
+    }
+
+    private boolean hasCause(Throwable throwable, Class<? extends Throwable> type) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (type.isInstance(current)) return true;
+            current = current.getCause();
+        }
+        return false;
     }
 
     private Map<String, Object> buildRequest(VenueRecommendationContext context) throws JacksonException {
@@ -102,7 +116,7 @@ public class GeminiVenueRecommendationGenerator implements VenueRecommendationGe
         return request;
     }
 
-    private VenueRecommendationResponse parseResponse(JsonNode response, int maxResults)
+    private VenueRecommendationResponse parseResponse(JsonNode response, int maxResults, int expectedParticipants)
             throws JacksonException {
         JsonNode candidate = response == null ? null : response.path("candidates").path(0);
         String text = candidate == null ? "" : extractText(candidate);
@@ -138,7 +152,7 @@ public class GeminiVenueRecommendationGenerator implements VenueRecommendationGe
         for (GroundedVenue item : grounded) {
             String sourceKey = item.source().placeId().isBlank() ? item.source().uri() : item.source().placeId();
             if (venues.size() >= maxResults || !placeIds.add(sourceKey)) continue;
-            venues.add(validateAndConvert(item.venue(), item.source(), venues.size() + 1));
+            venues.add(validateAndConvert(item.venue(), item.source(), venues.size() + 1, expectedParticipants));
         }
         if (venues.isEmpty()) {
             throw new IllegalArgumentException("중복되지 않은 추천 장소가 없습니다.");
@@ -154,7 +168,8 @@ public class GeminiVenueRecommendationGenerator implements VenueRecommendationGe
     }
 
     private VenueRecommendationResponse.Venue validateAndConvert(
-            GeneratedVenue venue, VenueRecommendationResponse.MapSource source, int rank) {
+            GeneratedVenue venue, VenueRecommendationResponse.MapSource source, int rank,
+            int expectedParticipants) {
         if (venue.name() == null || venue.name().isBlank() || venue.address() == null || venue.address().isBlank()) {
             throw new IllegalArgumentException("장소 이름 또는 주소가 없습니다.");
         }
@@ -167,9 +182,14 @@ public class GeminiVenueRecommendationGenerator implements VenueRecommendationGe
         if (venue.reasons() == null || venue.reasons().isEmpty()) {
             throw new IllegalArgumentException("추천 이유가 비어 있습니다.");
         }
+        BigDecimal totalCost = venue.estimatedCostPerPerson() == null ? null
+                : BigDecimal.valueOf(venue.estimatedCostPerPerson())
+                        .multiply(BigDecimal.valueOf(expectedParticipants));
+        List<String> reasons = safeList(venue.reasons());
         return new VenueRecommendationResponse.Venue(
                 rank, venue.name(), venue.address(), venue.category(), venue.estimatedCostPerPerson(),
-                venue.score(), safeList(venue.reasons()), withVerificationCaution(venue.cautions()),
+                totalCost, venue.score(), reasons, reasons, withVerificationCaution(venue.cautions()),
+                null, null, null,
                 source.uri(), source.placeId());
     }
 

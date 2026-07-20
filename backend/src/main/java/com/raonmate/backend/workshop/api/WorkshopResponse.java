@@ -11,13 +11,14 @@ import java.util.UUID;
 import java.util.List;
 
 public record WorkshopResponse(
-        UUID id, String title, String departureLocation, int expectedParticipants,
+        UUID id, String title, String departureLocation, String preferredRegion, int expectedParticipants,
         BigDecimal budgetPerPerson, LocalDateTime responseDeadline, String requiredConditions,
         WorkshopType workshopType, LocalDate preferredStartDate, LocalDate preferredEndDate, String purposeKeywords,
         List<String> selectedVenuePlaceIds, WorkshopStatus status, Instant createdAt, Instant updatedAt
 ) {
     public static WorkshopResponse from(Workshop workshop) {
         return new WorkshopResponse(workshop.getId(), workshop.getTitle(), workshop.getDepartureLocation(),
+                workshop.getPreferredRegion(),
                 workshop.getExpectedParticipants(), workshop.getBudgetPerPerson(), workshop.getResponseDeadline(),
                 workshop.getRequiredConditions(), workshop.getWorkshopType(), workshop.getPreferredStartDate(),
                 workshop.getPreferredEndDate(), workshop.getPurposeKeywords(), workshop.getSelectedVenuePlaceIds(), workshop.getStatus(),
