@@ -8,6 +8,11 @@ import com.raonmate.backend.venue.api.VenueRecommendationRequest;
 import com.raonmate.backend.venue.api.VenueRecommendationResponse;
 import com.raonmate.backend.workshop.domain.Workshop;
 import com.raonmate.backend.workshop.domain.WorkshopRepository;
+import com.raonmate.backend.venue.domain.VenueRecommendationSnapshot;
+import com.raonmate.backend.venue.domain.VenueRecommendationSnapshotRepository;
+import com.raonmate.backend.venue.api.VenueSelectionRequest;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,21 +32,22 @@ public class VenueRecommendationService {
     private final SurveySubmissionRepository submissionRepository;
     private final VenueRecommendationGenerator recommendationGenerator;
     private final VenueRecommendationCache recommendationCache;
+    private final VenueRecommendationSnapshotRepository snapshotRepository;
+    private final ObjectMapper objectMapper;
 
+    @Transactional
     public VenueRecommendationResponse recommend(UUID workshopId, VenueRecommendationRequest request) {
         Workshop workshop = workshopRepository.findById(workshopId)
                 .orElseThrow(() -> new ResourceNotFoundException("워크숍을 찾을 수 없습니다."));
-        Survey survey = surveyRepository.findByWorkshopId(workshopId)
-                .orElseThrow(() -> new ResourceNotFoundException("워크숍 설문을 찾을 수 없습니다."));
-
-        long totalResponses = submissionRepository.countBySurveyId(survey.getId());
+        Survey survey = surveyRepository.findByWorkshopId(workshopId).orElse(null);
+        long totalResponses = survey == null ? 0 : submissionRepository.countBySurveyId(survey.getId());
         VenueRecommendationCache.CacheKey cacheKey = recommendationCache.key(workshopId, totalResponses, request);
         var cached = recommendationCache.get(cacheKey);
         if (cached.isPresent()) return cached.get();
         recommendationCache.checkRateLimit(workshopId);
 
         Map<String, Map<String, Long>> answersByQuestion = new LinkedHashMap<>();
-        submissionRepository.findAllBySurveyIdOrderBySubmittedAtAsc(
+        if (survey != null) submissionRepository.findAllBySurveyIdOrderBySubmittedAtAsc(
                         survey.getId(), PageRequest.of(0, MAX_SURVEY_RESPONSES_FOR_AI)).stream()
                 .flatMap(submission -> submission.getAnswers().stream())
                 .forEach(answer -> answer.getValues().forEach(value -> answersByQuestion
@@ -58,10 +64,37 @@ public class VenueRecommendationService {
 
         var context = new VenueRecommendationContext(
                 workshop.getTitle(), workshop.getDepartureLocation(), workshop.getExpectedParticipants(),
-                workshop.getBudgetPerPerson(), workshop.getRequiredConditions(), totalResponses, summaries,
+                workshop.getBudgetPerPerson(), workshop.getRequiredConditions(), workshop.getWorkshopType(),
+                workshop.getPreferredStartDate(), workshop.getPreferredEndDate(), workshop.getPurposeKeywords(),
+                totalResponses, summaries,
                 request.latitude(), request.longitude(), request.resultLimit(), request.additionalRequest());
         VenueRecommendationResponse response = recommendationGenerator.generate(context);
         recommendationCache.put(cacheKey, response);
+        saveSnapshot(workshop, response);
         return response;
+    }
+
+    public VenueRecommendationResponse latest(UUID workshopId) {
+        if (!workshopRepository.existsById(workshopId))
+            throw new ResourceNotFoundException("워크숍을 찾을 수 없습니다.");
+        var snapshot = snapshotRepository.findFirstByWorkshopIdOrderByCreatedAtDesc(workshopId)
+                .orElseThrow(() -> new ResourceNotFoundException("저장된 장소 추천 결과가 없습니다."));
+        try { return objectMapper.readValue(snapshot.getResponseJson(), VenueRecommendationResponse.class); }
+        catch (JacksonException e) { throw new IllegalStateException("저장된 장소 추천 결과를 읽을 수 없습니다."); }
+    }
+
+    @Transactional
+    public List<String> select(UUID workshopId, VenueSelectionRequest request) {
+        Workshop workshop = workshopRepository.findById(workshopId)
+                .orElseThrow(() -> new ResourceNotFoundException("워크숍을 찾을 수 없습니다."));
+        var validIds = latest(workshopId).recommendations().stream().map(VenueRecommendationResponse.Venue::placeId).toList();
+        if (!validIds.containsAll(request.placeIds())) throw new IllegalArgumentException("추천 결과에 없는 장소입니다.");
+        workshop.selectVenues(request.placeIds().stream().distinct().toList());
+        return workshop.getSelectedVenuePlaceIds();
+    }
+
+    private void saveSnapshot(Workshop workshop, VenueRecommendationResponse response) {
+        try { snapshotRepository.save(new VenueRecommendationSnapshot(workshop, objectMapper.writeValueAsString(response))); }
+        catch (JacksonException e) { throw new IllegalStateException("장소 추천 결과를 저장할 수 없습니다."); }
     }
 }

@@ -36,4 +36,11 @@ public class WorkshopController {
     @Operation(summary = "워크숍 상세 조회")
     @ApiResponse(responseCode = "404", description = "워크숍을 찾을 수 없음")
     public WorkshopResponse get(@PathVariable UUID workshopId) { return workshopService.get(workshopId); }
+
+    @PutMapping("/{workshopId}")
+    @Operation(summary = "워크숍 기본정보 수정")
+    public WorkshopResponse update(@PathVariable UUID workshopId,
+                                   @Valid @RequestBody WorkshopUpdateRequest request) {
+        return workshopService.update(workshopId, request);
+    }
 }

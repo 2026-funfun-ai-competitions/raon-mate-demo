@@ -32,7 +32,7 @@ class GeminiVenueRecommendationGeneratorTests {
     }
 
     @Test
-    void sendsMapsGroundedContextAndParsesRecommendations() throws Exception {
+    void sendsFreeModelContextAndParsesRecommendations() throws Exception {
         AtomicReference<String> requestBody = new AtomicReference<>();
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/v1beta/models/gemini-test:generateContent", exchange -> {
@@ -59,7 +59,7 @@ class GeminiVenueRecommendationGeneratorTests {
             assertEquals(94, response.recommendations().getFirst().score());
             assertEquals("https://maps.google.com/example", response.recommendations().getFirst().mapUri());
             assertEquals("places/example", response.sources().getFirst().placeId());
-            assertTrue(requestBody.get().contains("googleMaps"));
+            assertTrue(!requestBody.get().contains("googleMaps"));
             assertTrue(requestBody.get().contains("자연 체험"));
             assertTrue(requestBody.get().contains("latitude"));
         } finally {
@@ -68,7 +68,7 @@ class GeminiVenueRecommendationGeneratorTests {
     }
 
     @Test
-    void rejectsRecommendationWithoutMapsGrounding() throws Exception {
+    void createsMapsSearchLinkWithoutPaidGrounding() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/v1beta/models/gemini-test:generateContent", exchange -> {
             byte[] response = """
@@ -87,7 +87,9 @@ class GeminiVenueRecommendationGeneratorTests {
                     "http://localhost:" + server.getAddress().getPort(),
                     Duration.ofSeconds(1), Duration.ofSeconds(1));
 
-            assertThrows(ExternalAiServiceException.class, () -> generator.generate(context()));
+            var response = generator.generate(context());
+            assertTrue(response.recommendations().getFirst().mapUri().startsWith("https://www.google.com/maps/search/"));
+            assertTrue(response.recommendations().getFirst().cautions().contains("Google Maps에서 최신 정보 확인 필요"));
         } finally {
             server.stop(0);
         }

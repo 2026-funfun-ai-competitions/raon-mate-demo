@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/workshops/{workshopId}/venue-recommendations")
@@ -34,5 +37,18 @@ public class VenueRecommendationController {
             @Valid @RequestBody VenueRecommendationRequest request) {
         accessGuard.verify(accessToken);
         return recommendationService.recommend(workshopId, request);
+    }
+
+    @GetMapping
+    @Operation(summary = "최근 장소 추천 결과 조회")
+    public VenueRecommendationResponse latest(@PathVariable UUID workshopId) {
+        return recommendationService.latest(workshopId);
+    }
+
+    @PutMapping("/selection")
+    @Operation(summary = "비교·선택할 장소 저장", description = "최대 3곳을 저장합니다.")
+    public List<String> select(@PathVariable UUID workshopId,
+                               @Valid @RequestBody VenueSelectionRequest request) {
+        return recommendationService.select(workshopId, request);
     }
 }

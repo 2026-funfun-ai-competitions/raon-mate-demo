@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "workshops")
@@ -20,6 +23,18 @@ public class Workshop {
     @Column(precision = 15, scale = 0)
     private BigDecimal budgetPerPerson;
     private LocalDateTime responseDeadline;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private WorkshopType workshopType;
+    private LocalDate preferredStartDate;
+    private LocalDate preferredEndDate;
+    @Column(length = 100)
+    private String purposeKeywords;
+    @ElementCollection
+    @CollectionTable(name = "workshop_selected_venues", joinColumns = @JoinColumn(name = "workshop_id"))
+    @OrderColumn(name = "selection_order")
+    @Column(name = "place_id", nullable = false, length = 200)
+    private List<String> selectedVenuePlaceIds = new ArrayList<>();
     @Column(length = 1000)
     private String requiredConditions;
     @Enumerated(EnumType.STRING)
@@ -33,7 +48,9 @@ public class Workshop {
     protected Workshop() {}
 
     public Workshop(String title, String departureLocation, int expectedParticipants,
-                    BigDecimal budgetPerPerson, LocalDateTime responseDeadline, String requiredConditions) {
+                    BigDecimal budgetPerPerson, LocalDateTime responseDeadline, String requiredConditions,
+                    WorkshopType workshopType, LocalDate preferredStartDate, LocalDate preferredEndDate,
+                    String purposeKeywords) {
         this.id = UUID.randomUUID();
         this.title = title;
         this.departureLocation = departureLocation;
@@ -41,7 +58,31 @@ public class Workshop {
         this.budgetPerPerson = budgetPerPerson;
         this.responseDeadline = responseDeadline;
         this.requiredConditions = requiredConditions;
+        this.workshopType = workshopType;
+        this.preferredStartDate = preferredStartDate;
+        this.preferredEndDate = preferredEndDate;
+        this.purposeKeywords = purposeKeywords;
         this.status = WorkshopStatus.DRAFT;
+    }
+
+    public void update(String title, String preferredRegion, int expectedParticipants,
+                       BigDecimal budgetPerPerson, WorkshopType workshopType,
+                       LocalDate preferredStartDate, LocalDate preferredEndDate,
+                       String purposeKeywords, String requiredConditions) {
+        this.title = title;
+        this.departureLocation = preferredRegion;
+        this.expectedParticipants = expectedParticipants;
+        this.budgetPerPerson = budgetPerPerson;
+        this.workshopType = workshopType;
+        this.preferredStartDate = preferredStartDate;
+        this.preferredEndDate = preferredEndDate;
+        this.purposeKeywords = purposeKeywords;
+        this.requiredConditions = requiredConditions;
+    }
+
+    public void selectVenues(List<String> placeIds) {
+        selectedVenuePlaceIds.clear();
+        selectedVenuePlaceIds.addAll(placeIds);
     }
 
     @PrePersist
@@ -69,6 +110,11 @@ public class Workshop {
     public int getExpectedParticipants() { return expectedParticipants; }
     public BigDecimal getBudgetPerPerson() { return budgetPerPerson; }
     public LocalDateTime getResponseDeadline() { return responseDeadline; }
+    public WorkshopType getWorkshopType() { return workshopType; }
+    public LocalDate getPreferredStartDate() { return preferredStartDate; }
+    public LocalDate getPreferredEndDate() { return preferredEndDate; }
+    public String getPurposeKeywords() { return purposeKeywords; }
+    public List<String> getSelectedVenuePlaceIds() { return List.copyOf(selectedVenuePlaceIds); }
     public String getRequiredConditions() { return requiredConditions; }
     public WorkshopStatus getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }

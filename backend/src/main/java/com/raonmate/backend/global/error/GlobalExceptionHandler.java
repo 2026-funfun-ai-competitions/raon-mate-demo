@@ -10,8 +10,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import lombok.extern.slf4j.Slf4j;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -47,7 +49,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ExternalAiServiceException.class)
     public ResponseEntity<ApiErrorResponse> handleExternalAiService(ExternalAiServiceException exception) {
+        log.error("외부 AI 서비스 호출에 실패했습니다.", exception);
         return error(HttpStatus.SERVICE_UNAVAILABLE, "AI_SERVICE_UNAVAILABLE", exception.getMessage());
+    }
+
+    @ExceptionHandler(ExternalNotificationServiceException.class)
+    public ResponseEntity<ApiErrorResponse> handleExternalNotificationService(
+            ExternalNotificationServiceException exception) {
+        log.error("외부 알림 서비스 호출에 실패했습니다.", exception);
+        return error(HttpStatus.SERVICE_UNAVAILABLE, "NOTIFICATION_SERVICE_UNAVAILABLE", exception.getMessage());
     }
 
     @ExceptionHandler(RateLimitExceededException.class)

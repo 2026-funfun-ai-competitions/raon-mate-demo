@@ -1,0 +1,1 @@
+package com.raonmate.backend.notification.domain; import java.util.*; import org.springframework.data.jpa.repository.JpaRepository; public interface WorkshopNotificationRepository extends JpaRepository<WorkshopNotification,UUID>{List<WorkshopNotification> findAllByWorkshopIdOrderBySentAtDesc(UUID id);}

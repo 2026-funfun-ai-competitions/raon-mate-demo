@@ -3,6 +3,7 @@ package com.raonmate.backend.workshop.application;
 import com.raonmate.backend.global.error.ResourceNotFoundException;
 import com.raonmate.backend.workshop.api.WorkshopCreateRequest;
 import com.raonmate.backend.workshop.api.WorkshopResponse;
+import com.raonmate.backend.workshop.api.WorkshopUpdateRequest;
 import com.raonmate.backend.workshop.domain.Workshop;
 import com.raonmate.backend.workshop.domain.WorkshopRepository;
 import java.util.List;
@@ -22,11 +23,21 @@ public class WorkshopService {
     public WorkshopResponse create(WorkshopCreateRequest request) {
         Workshop workshop = new Workshop(request.title(), request.departureLocation(),
                 request.expectedParticipants(), request.budgetPerPerson(), request.responseDeadline(),
-                request.requiredConditions());
+                request.requiredConditions(), request.workshopType(), request.preferredStartDate(),
+                request.preferredEndDate(), request.purposeKeywords());
         return WorkshopResponse.from(workshopRepository.save(workshop));
     }
 
     public WorkshopResponse get(UUID id) { return WorkshopResponse.from(find(id)); }
+
+    @Transactional
+    public WorkshopResponse update(UUID id, WorkshopUpdateRequest request) {
+        Workshop workshop = find(id);
+        workshop.update(request.title(), request.preferredRegion(), request.expectedParticipants(),
+                request.budgetPerPerson(), request.workshopType(), request.preferredStartDate(),
+                request.preferredEndDate(), request.purposeKeywords(), request.requiredConditions());
+        return WorkshopResponse.from(workshop);
+    }
 
     public List<WorkshopResponse> findAll() {
         return workshopRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()

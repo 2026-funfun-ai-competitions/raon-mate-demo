@@ -1,0 +1,4 @@
+package com.raonmate.backend.schedule.api;
+import com.raonmate.backend.schedule.application.ScheduleService; import io.swagger.v3.oas.annotations.*; import jakarta.validation.Valid; import java.util.UUID; import lombok.RequiredArgsConstructor; import org.springframework.web.bind.annotation.*;
+@RestController @RequestMapping("/api/workshops/{workshopId}/schedule") @RequiredArgsConstructor
+public class ScheduleController {private final ScheduleService service; @GetMapping public ScheduleResponse get(@PathVariable UUID workshopId){return service.get(workshopId);}@PostMapping("/generate") public ScheduleResponse generate(@PathVariable UUID workshopId){return service.generate(workshopId);}@PutMapping public ScheduleResponse update(@PathVariable UUID workshopId,@Valid @RequestBody ScheduleRequest request){return service.update(workshopId,request);}}

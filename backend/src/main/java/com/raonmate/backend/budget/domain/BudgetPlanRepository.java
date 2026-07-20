@@ -1,0 +1,1 @@
+package com.raonmate.backend.budget.domain; import java.util.*; import org.springframework.data.jpa.repository.JpaRepository; public interface BudgetPlanRepository extends JpaRepository<BudgetPlan,UUID>{Optional<BudgetPlan> findByWorkshopId(UUID id);}
