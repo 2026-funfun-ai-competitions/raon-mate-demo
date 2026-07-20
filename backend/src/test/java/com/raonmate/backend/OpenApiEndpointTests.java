@@ -27,6 +27,12 @@ class OpenApiEndpointTests {
             assertEquals(200, apiDocs.statusCode());
             assertTrue(apiDocs.body().contains("라온 메이트 API"));
             assertTrue(apiDocs.body().contains("/api/workshops"));
+            assertTrue(apiDocs.body().contains("/api/workshops/{workshopId}/budget"));
+            assertTrue(apiDocs.body().contains("/api/workshops/{workshopId}/schedule"));
+            assertTrue(apiDocs.body().contains("/api/workshops/{workshopId}/notifications"));
+            assertTrue(apiDocs.body().contains("예산 계획 초기화"));
+            assertTrue(apiDocs.body().contains("워크숍 일정 자동 생성"));
+            assertTrue(apiDocs.body().contains("워크숍 알림 발송"));
 
             HttpResponse<Void> swaggerUi = client.send(
                     HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/swagger-ui.html")).GET().build(),
