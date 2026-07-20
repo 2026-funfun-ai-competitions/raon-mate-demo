@@ -1,4 +1,6 @@
 import { BusIcon, CalendarIcon, DiningIcon, PeopleIcon, SparkleIcon } from '@/components/icons'
+import type { ScheduleItem } from '@/api/workshop'
+import { categoryMeta, durationLabel, groupByDate } from './scheduleMeta'
 
 const recommendationPoints = [
   '팀빌딩과 소통 강화를 위한 최적의 프로그램 배치',
@@ -7,36 +9,24 @@ const recommendationPoints = [
   '참가자 만족도가 높은 인기 프로그램 구성',
 ]
 
-const scheduleOverview = [
-  { icon: CalendarIcon, label: '진행 기간', value: '1박 2일' },
-  { icon: CalendarIcon, label: '총 일정', value: '9개' },
-  { icon: DiningIcon, label: '식사', value: '3회' },
-  { icon: BusIcon, label: '이동', value: '2회' },
-  { icon: PeopleIcon, label: '주요 활동', value: '팀빌딩, 세션, 네트워킹' },
-]
+const timelineDotColors = ['bg-violet-400', 'bg-emerald-400', 'bg-amber-400', 'bg-blue-400']
 
-const timeline = [
-  {
-    day: 'DAY 1',
-    color: 'bg-violet-400',
-    points: [
-      { time: '10:00', label: '집결 및 이동' },
-      { time: '13:00', label: '오프닝 & 아이스브레이킹' },
-      { time: '18:00', label: '저녁 식사 & 바베큐' },
-    ],
-  },
-  {
-    day: 'DAY 2',
-    color: 'bg-emerald-400',
-    points: [
-      { time: '08:00', label: '조식' },
-      { time: '09:30', label: '워크숍 세션' },
-      { time: '12:00', label: '이동 및 해산' },
-    ],
-  },
-]
+function Step3RightPanel({ items }: { items: ScheduleItem[] }) {
+  const days = groupByDate(items)
+  const mealCount = items.filter((item) => item.type === 'MEAL').length
+  const moveCount = items.filter((item) => item.type === 'MOVE').length
+  const activityTypes = [...new Set(items.map((item) => item.type))]
+    .filter((type) => type !== 'MOVE' && type !== 'MEAL')
+    .map((type) => categoryMeta[type]?.label ?? type)
 
-function Step3RightPanel() {
+  const scheduleOverview = [
+    { icon: CalendarIcon, label: '진행 기간', value: durationLabel(items) },
+    { icon: CalendarIcon, label: '총 일정', value: `${items.length}개` },
+    { icon: DiningIcon, label: '식사', value: `${mealCount}회` },
+    { icon: BusIcon, label: '이동', value: `${moveCount}회` },
+    { icon: PeopleIcon, label: '주요 활동', value: activityTypes.join(', ') || '-' },
+  ]
+
   return (
     <>
       <div className="rounded-2xl bg-white p-5 shadow-sm">
@@ -58,15 +48,19 @@ function Step3RightPanel() {
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="mb-3 font-semibold text-slate-800">일정 한눈에 보기</h2>
-        <ul className="flex flex-col gap-2.5 text-xs">
-          {scheduleOverview.map(({ icon: Icon, label, value }) => (
-            <li key={label} className="flex items-center gap-2">
-              <Icon className="h-4 w-4 flex-shrink-0 text-slate-400" />
-              <span className="w-16 flex-shrink-0 text-slate-400">{label}</span>
-              <span className="font-medium text-slate-700">{value}</span>
-            </li>
-          ))}
-        </ul>
+        {items.length === 0 ? (
+          <p className="text-xs text-slate-400">아직 생성된 일정이 없어요.</p>
+        ) : (
+          <ul className="flex flex-col gap-2.5 text-xs">
+            {scheduleOverview.map(({ icon: Icon, label, value }) => (
+              <li key={label} className="flex items-center gap-2">
+                <Icon className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                <span className="w-16 flex-shrink-0 text-slate-400">{label}</span>
+                <span className="font-medium text-slate-700">{value}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
@@ -74,15 +68,24 @@ function Step3RightPanel() {
           일정 미리보기 <span className="text-xs font-normal text-slate-400">(간단 타임라인)</span>
         </h2>
         <div className="flex flex-col gap-5">
-          {timeline.map(({ day, color, points }) => (
+          {days.map(({ day, items: dayItems }, index) => (
             <div key={day}>
               <p className="mb-2 text-xs font-semibold text-slate-500">{day}</p>
               <div className="flex items-start justify-between">
-                {points.map(({ time, label }) => (
-                  <div key={time} className="flex flex-1 flex-col items-center gap-1 text-center">
-                    <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
-                    <span className="text-xs font-medium text-slate-700">{time}</span>
-                    <span className="text-[11px] leading-tight text-slate-400">{label}</span>
+                {dayItems.slice(0, 3).map((item) => (
+                  <div
+                    key={`${item.date}-${item.startTime}`}
+                    className="flex flex-1 flex-col items-center gap-1 text-center"
+                  >
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        timelineDotColors[index % timelineDotColors.length]
+                      }`}
+                    />
+                    <span className="text-xs font-medium text-slate-700">
+                      {item.startTime.slice(0, 5)}
+                    </span>
+                    <span className="text-[11px] leading-tight text-slate-400">{item.title}</span>
                   </div>
                 ))}
               </div>

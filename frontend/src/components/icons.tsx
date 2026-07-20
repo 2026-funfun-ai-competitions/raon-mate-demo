@@ -288,3 +288,38 @@ export function SmsIcon(props: SVGProps<SVGSVGElement>) {
     </IconBase>
   )
 }
+
+export function SearchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconBase {...props}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.35-4.35" />
+    </IconBase>
+  )
+}
+
+export function MoreVerticalIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <circle cx="12" cy="5" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="12" cy="19" r="1.5" />
+    </svg>
+  )
+}
+
+export function ChevronLeftIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconBase {...props}>
+      <path d="m15 18-6-6 6-6" />
+    </IconBase>
+  )
+}
+
+export function PlusIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </IconBase>
+  )
+}

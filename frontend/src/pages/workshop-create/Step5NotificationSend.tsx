@@ -1,31 +1,72 @@
 import { useState } from 'react'
 import { ArrowLeftIcon, EyeIcon, PaperclipIcon, PeopleIcon, SendIcon } from '@/components/icons'
+import { sendNotification } from '@/api/workshop'
 
 const defaultMessage = `안녕하세요, 라온인 여러분!
 
 다가오는 워크숍 일정을 안내드립니다.
 함께 소통하고 성장하는 의미있는 시간이 되길 기대합니다! 😊
 
-📅 일정: 2025.09.09 (화) ~ 09.10 (수) (1박 2일)
-📍 장소: 가평 펜션 리조트
-👥 참석 인원: 25명
-💰 1인 예산: 150,000원
-🎯 워크숍 목적: 팀 빌딩, 소통 강화, 하반기 목표 공유
+📅 일정:
+📍 장소:
+👥 참석 인원:
+💰 1인 예산:
+🎯 워크숍 목적:
 
 자세한 내용은 아래 버튼을 통해 확인해주세요.
 
 감사합니다.`
 
-const recipientGroups = [
-  { label: '참석자', count: 25, checked: true },
+const extraRecipientGroups = [
   { label: '운영진', count: 3, checked: false },
   { label: '참관자', count: 2, checked: false },
   { label: '예비 참석자', count: 0, checked: false },
 ]
 
-function Step5NotificationSend({ onBack }: { onBack: () => void }) {
+function Step5NotificationSend({
+  workshopId,
+  expectedParticipants,
+  onBack,
+  onSent,
+}: {
+  workshopId: string
+  expectedParticipants: number
+  onBack: () => void
+  onSent: () => void
+}) {
   const [message, setMessage] = useState(defaultMessage)
   const [sendTiming, setSendTiming] = useState<'now' | 'scheduled'>('now')
+  const [isSending, setIsSending] = useState(false)
+  const [sendResult, setSendResult] = useState<{ ok: boolean; message: string } | null>(null)
+
+  async function handleSend() {
+    if (!message.trim()) {
+      setSendResult({ ok: false, message: '알림 메시지를 입력해주세요.' })
+      return
+    }
+    if (expectedParticipants < 1) {
+      setSendResult({ ok: false, message: '수신할 참석 인원이 없어요.' })
+      return
+    }
+
+    setIsSending(true)
+    setSendResult(null)
+    try {
+      await sendNotification(workshopId, {
+        channel: 'SLACK',
+        recipientCount: expectedParticipants,
+        message,
+      })
+      setSendResult({ ok: true, message: '알림을 발송했어요!' })
+      onSent()
+    } catch (err) {
+      const backendMessage = (err as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message
+      setSendResult({ ok: false, message: backendMessage ?? '알림 발송에 실패했어요.' })
+    } finally {
+      setIsSending(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-sm">
@@ -114,13 +155,20 @@ function Step5NotificationSend({ onBack }: { onBack: () => void }) {
                 명단 확인
               </button>
             </div>
-            <p className="mb-2 text-xs text-slate-500">참석자 25명</p>
+            <p className="mb-2 text-xs text-slate-500">참석자 {expectedParticipants}명</p>
             <label className="mb-2 flex items-center gap-2 text-xs text-slate-600">
               <input type="checkbox" defaultChecked className="h-4 w-4 accent-violet-600" />
               전체 선택
             </label>
             <ul className="flex flex-col gap-1.5 border-t border-slate-100 pt-2">
-              {recipientGroups.map(({ label, count, checked }) => (
+              <li className="flex items-center justify-between text-xs">
+                <label className="flex items-center gap-2 text-slate-600">
+                  <input type="checkbox" defaultChecked className="h-4 w-4 accent-violet-600" />
+                  참석자
+                </label>
+                <span className="text-slate-400">{expectedParticipants}명</span>
+              </li>
+              {extraRecipientGroups.map(({ label, count, checked }) => (
                 <li key={label} className="flex items-center justify-between text-xs">
                   <label className="flex items-center gap-2 text-slate-600">
                     <input
@@ -181,6 +229,11 @@ function Step5NotificationSend({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="flex flex-col items-end gap-2 border-t border-slate-100 pt-4">
+        {sendResult && (
+          <p className={`text-xs ${sendResult.ok ? 'text-emerald-600' : 'text-red-500'}`}>
+            {sendResult.message}
+          </p>
+        )}
         <div className="flex w-full items-center justify-between">
           <button
             type="button"
@@ -192,10 +245,12 @@ function Step5NotificationSend({ onBack }: { onBack: () => void }) {
           </button>
           <button
             type="button"
-            className="flex items-center justify-center gap-1 rounded-full bg-violet-600 px-6 py-3 font-semibold text-white hover:bg-violet-700"
+            onClick={handleSend}
+            disabled={isSending}
+            className="flex items-center justify-center gap-1 rounded-full bg-violet-600 px-6 py-3 font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
           >
             <SendIcon className="h-4 w-4" />
-            알림 발송하기
+            {isSending ? '발송 중...' : '알림 발송하기'}
           </button>
         </div>
         <p className="text-xs text-slate-400">

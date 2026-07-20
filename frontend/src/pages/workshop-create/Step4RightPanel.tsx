@@ -1,4 +1,5 @@
 import { ChevronRightIcon, SparkleIcon } from '@/components/icons'
+import type { Venue, WorkshopResponse } from '@/api/workshop'
 import SelectedWorkshopSummary from './SelectedWorkshopSummary'
 
 const budgetCompare = [
@@ -13,10 +14,18 @@ const budgetTips = [
   '액티비티를 패키지로 구성해 비용 효율을 높였어요.',
 ]
 
-function Step4RightPanel() {
+function Step4RightPanel({
+  workshop,
+  venue,
+  onEditWorkshop,
+}: {
+  workshop: WorkshopResponse
+  venue?: Venue
+  onEditWorkshop: () => void
+}) {
   return (
     <>
-      <SelectedWorkshopSummary />
+      <SelectedWorkshopSummary workshop={workshop} venue={venue} onEdit={onEditWorkshop} />
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
         <div className="mb-1 flex items-center justify-between">
@@ -32,7 +41,9 @@ function Step4RightPanel() {
         <p className="mb-3 text-xs text-slate-500">
           유사 규모 워크숍의 평균 예산과 비교해보세요.
         </p>
-        <p className="mb-2 text-[11px] text-slate-400">25명, 1박 2일 기준 (1인당)</p>
+        <p className="mb-2 text-[11px] text-slate-400">
+          {workshop.expectedParticipants}명 기준 (1인당)
+        </p>
         <div className="flex flex-col gap-2">
           {budgetCompare.map(({ label, value, percent, color }) => (
             <div key={label} className="flex items-center gap-2 text-xs">
