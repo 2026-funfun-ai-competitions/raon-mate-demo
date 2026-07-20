@@ -1,5 +1,6 @@
 import {
   ActivityIcon,
+  ArrowLeftIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   DiningIcon,
@@ -54,10 +55,12 @@ const places = [
 
 function Step2PlaceRecommendation({
   onNext,
+  onBack,
   selectedIds,
   onToggle,
 }: {
   onNext: () => void
+  onBack: () => void
   selectedIds: string[]
   onToggle: (id: string) => void
 }) {
@@ -182,8 +185,16 @@ function Step2PlaceRecommendation({
       </div>
 
       <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-        <div className="flex items-center gap-3 text-sm text-slate-500">
-          <span>{selectedIds.length}곳 선택됨</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1 rounded-full border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            이전 단계로
+          </button>
+          <span className="text-sm text-slate-500">{selectedIds.length}곳 선택됨</span>
           <button
             type="button"
             className="flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
