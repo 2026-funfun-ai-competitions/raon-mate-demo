@@ -31,13 +31,19 @@ class OpenApiEndpointTests {
             assertTrue(apiDocs.body().contains("/api/workshops/{workshopId}/schedule"));
             assertTrue(apiDocs.body().contains("/api/workshops/{workshopId}/notifications"));
             assertTrue(apiDocs.body().contains("예산 계획 초기화"));
-            assertTrue(apiDocs.body().contains("워크숍 일정 자동 생성"));
+            assertTrue(apiDocs.body().contains("워크숍 AI 일정 생성"));
             assertTrue(apiDocs.body().contains("워크숍 알림 발송"));
 
             HttpResponse<Void> swaggerUi = client.send(
                     HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/swagger-ui.html")).GET().build(),
                     HttpResponse.BodyHandlers.discarding());
             assertTrue(swaggerUi.statusCode() == 302 || swaggerUi.statusCode() == 200);
+
+            HttpResponse<Void> defaultVenueImage = client.send(
+                    HttpRequest.newBuilder(URI.create(
+                            "http://127.0.0.1:" + port + "/images/venues/workshop-default.png")).GET().build(),
+                    HttpResponse.BodyHandlers.discarding());
+            assertEquals(200, defaultVenueImage.statusCode());
         }
     }
 }

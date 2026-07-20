@@ -8,6 +8,7 @@ import com.raonmate.backend.notification.infrastructure.SlackNotificationSender;
 import com.raonmate.backend.notification.application.NotificationService;
 import com.raonmate.backend.schedule.api.ScheduleRequest;
 import com.raonmate.backend.schedule.application.ScheduleService;
+import com.raonmate.backend.schedule.application.ScheduleGenerator;
 import com.raonmate.backend.workshop.api.*;
 import com.raonmate.backend.workshop.application.WorkshopService;
 import com.raonmate.backend.workshop.domain.WorkshopType;
@@ -28,6 +29,7 @@ class WorkshopPlannerFlowTests {
  private final WorkshopService workshops; private final ScheduleService schedules;
  private final BudgetService budgets; private final NotificationService notifications;
  @MockitoBean private SlackNotificationSender slackNotificationSender;
+ @MockitoBean private ScheduleGenerator scheduleGenerator;
  @Test void completesDemoPlannerFlow(){
   var w=workshops.create(new WorkshopCreateRequest("기술본부 워크숍","서울 근교",25,new BigDecimal("150000"),null,"팀빌딩",WorkshopType.OVERNIGHT,LocalDate.of(2026,9,9),LocalDate.of(2026,9,10),"소통 강화"));
   assertEquals(WorkshopType.OVERNIGHT,w.workshopType());

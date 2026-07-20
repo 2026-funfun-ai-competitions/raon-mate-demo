@@ -10,6 +10,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,6 +23,7 @@ public class VenueRecommendationCache {
 
     private final Map<CacheKey, CacheEntry> entries = new ConcurrentHashMap<>();
     private final Map<UUID, Instant> lastRequests = new ConcurrentHashMap<>();
+    private final Map<CacheKey, CompletableFuture<VenueRecommendationResponse>> inFlight = new ConcurrentHashMap<>();
     private final Duration ttl;
     private final Duration minimumInterval;
     private final Clock clock;
@@ -37,8 +41,9 @@ public class VenueRecommendationCache {
         this.clock = clock;
     }
 
-    public CacheKey key(UUID workshopId, long responseCount, VenueRecommendationRequest request) {
-        return new CacheKey(workshopId, responseCount, request.latitude(), request.longitude(),
+    public CacheKey key(UUID workshopId, Instant workshopUpdatedAt, long responseCount,
+                        VenueRecommendationRequest request) {
+        return new CacheKey(workshopId, workshopUpdatedAt, responseCount, request.latitude(), request.longitude(),
                 request.resultLimit(), request.additionalRequest());
     }
 
@@ -67,6 +72,38 @@ public class VenueRecommendationCache {
         entries.put(key, new CacheEntry(response, clock.instant()));
     }
 
+    public VenueRecommendationResponse getOrGenerate(
+            CacheKey key, UUID workshopId, Supplier<VenueRecommendationResponse> generator) {
+        Optional<VenueRecommendationResponse> cached = get(key);
+        if (cached.isPresent()) return cached.get();
+
+        CompletableFuture<VenueRecommendationResponse> pending = new CompletableFuture<>();
+        CompletableFuture<VenueRecommendationResponse> existing = inFlight.putIfAbsent(key, pending);
+        if (existing != null) return await(existing);
+
+        try {
+            checkRateLimit(workshopId);
+            VenueRecommendationResponse response = generator.get();
+            put(key, response);
+            pending.complete(response);
+            return response;
+        } catch (RuntimeException exception) {
+            pending.completeExceptionally(exception);
+            throw exception;
+        } finally {
+            inFlight.remove(key, pending);
+        }
+    }
+
+    private VenueRecommendationResponse await(CompletableFuture<VenueRecommendationResponse> pending) {
+        try {
+            return pending.join();
+        } catch (CompletionException exception) {
+            if (exception.getCause() instanceof RuntimeException runtimeException) throw runtimeException;
+            throw exception;
+        }
+    }
+
     private void removeExpiredEntries() {
         Instant now = clock.instant();
         entries.entrySet().removeIf(entry -> entry.getValue().createdAt().plus(ttl).isBefore(now));
@@ -74,7 +111,7 @@ public class VenueRecommendationCache {
     }
 
     public record CacheKey(
-            UUID workshopId, long responseCount, Double latitude, Double longitude,
+            UUID workshopId, Instant workshopUpdatedAt, long responseCount, Double latitude, Double longitude,
             int maxResults, String additionalRequest) {}
 
     private record CacheEntry(VenueRecommendationResponse response, Instant createdAt) {}

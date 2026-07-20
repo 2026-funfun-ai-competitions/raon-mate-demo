@@ -30,6 +30,7 @@ public class VenueRecommendationService {
     private final WorkshopRepository workshopRepository;
     private final SurveyRepository surveyRepository;
     private final SurveySubmissionRepository submissionRepository;
+    private final VenueCandidateProvider candidateProvider;
     private final VenueRecommendationGenerator recommendationGenerator;
     private final VenueRecommendationCache recommendationCache;
     private final VenueRecommendationSnapshotRepository snapshotRepository;
@@ -41,11 +42,8 @@ public class VenueRecommendationService {
                 .orElseThrow(() -> new ResourceNotFoundException("워크숍을 찾을 수 없습니다."));
         Survey survey = surveyRepository.findByWorkshopId(workshopId).orElse(null);
         long totalResponses = survey == null ? 0 : submissionRepository.countBySurveyId(survey.getId());
-        VenueRecommendationCache.CacheKey cacheKey = recommendationCache.key(workshopId, totalResponses, request);
-        var cached = recommendationCache.get(cacheKey);
-        if (cached.isPresent()) return cached.get();
-        recommendationCache.checkRateLimit(workshopId);
-
+        VenueRecommendationCache.CacheKey cacheKey = recommendationCache.key(
+                workshopId, workshop.getUpdatedAt(), totalResponses, request);
         Map<String, Map<String, Long>> answersByQuestion = new LinkedHashMap<>();
         if (survey != null) submissionRepository.findAllBySurveyIdOrderBySubmittedAtAsc(
                         survey.getId(), PageRequest.of(0, MAX_SURVEY_RESPONSES_FOR_AI)).stream()
@@ -67,11 +65,13 @@ public class VenueRecommendationService {
                 workshop.getBudgetPerPerson(), workshop.getRequiredConditions(), workshop.getWorkshopType(),
                 workshop.getPreferredStartDate(), workshop.getPreferredEndDate(), workshop.getPurposeKeywords(),
                 totalResponses, summaries,
-                request.latitude(), request.longitude(), request.resultLimit(), request.additionalRequest());
-        VenueRecommendationResponse response = recommendationGenerator.generate(context);
-        recommendationCache.put(cacheKey, response);
-        saveSnapshot(workshop, response);
-        return response;
+                request.latitude(), request.longitude(), request.resultLimit(), request.additionalRequest(), List.of());
+        return recommendationCache.getOrGenerate(cacheKey, workshopId, () -> {
+            VenueRecommendationResponse response = recommendationGenerator.generate(
+                    context.withCandidates(candidateProvider.search(context)));
+            saveSnapshot(workshop, response);
+            return response;
+        });
     }
 
     public VenueRecommendationResponse latest(UUID workshopId) {
