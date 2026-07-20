@@ -17,6 +17,8 @@ import Step1ThemeIdeas from './workshop-create/Step1ThemeIdeas'
 import Step1RightPanel from './workshop-create/Step1RightPanel'
 import Step2PlaceRecommendation from './workshop-create/Step2PlaceRecommendation'
 import Step2RightPanel from './workshop-create/Step2RightPanel'
+import Step2CompareView from './workshop-create/Step2CompareView'
+import Step2CompareRightPanel from './workshop-create/Step2CompareRightPanel'
 import Step3SchedulePlan from './workshop-create/Step3SchedulePlan'
 import Step3RightPanel from './workshop-create/Step3RightPanel'
 import Step4BudgetManagement from './workshop-create/Step4BudgetManagement'
@@ -39,6 +41,7 @@ function WorkshopCreatePage() {
   const [resumeError, setResumeError] = useState<string | null>(null)
   const [isEditingWorkshop, setIsEditingWorkshop] = useState(false)
   const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0)
+  const [isComparingVenues, setIsComparingVenues] = useState(false)
 
   useEffect(() => {
     if (!routeWorkshopId) return
@@ -108,6 +111,7 @@ function WorkshopCreatePage() {
     setSelectedVenues([])
     setSchedule([])
     setBudget(null)
+    setIsComparingVenues(false)
     setCurrentStep(2)
     navigate(`/workshops/${created.id}`, { replace: true })
   }
@@ -162,7 +166,7 @@ function WorkshopCreatePage() {
           </>
         )}
 
-        {workshop && currentStep === 2 && (
+        {workshop && currentStep === 2 && !isComparingVenues && (
           <Step2PlaceRecommendation
             workshopId={workshop.id}
             initialVenues={venues}
@@ -172,6 +176,17 @@ function WorkshopCreatePage() {
             onToggle={toggleSelectedVenue}
             onVenuesLoaded={setVenues}
             onEditWorkshop={() => setIsEditingWorkshop(true)}
+            onCompare={() => setIsComparingVenues(true)}
+          />
+        )}
+
+        {workshop && currentStep === 2 && isComparingVenues && (
+          <Step2CompareView
+            venues={venues}
+            selectedIds={selectedVenues.map((v) => v.placeId)}
+            onToggle={toggleSelectedVenue}
+            onBack={() => setIsComparingVenues(false)}
+            onResetSelection={() => setSelectedVenues([])}
           />
         )}
 
@@ -207,11 +222,23 @@ function WorkshopCreatePage() {
 
       <div className="flex flex-col gap-4">
         {currentStep === 1 && <Step1RightPanel />}
-        {workshop && currentStep === 2 && (
+        {workshop && currentStep === 2 && !isComparingVenues && (
           <Step2RightPanel
             workshop={workshop}
             venues={venues}
             onEditWorkshop={() => setIsEditingWorkshop(true)}
+          />
+        )}
+        {workshop && currentStep === 2 && isComparingVenues && (
+          <Step2CompareRightPanel
+            workshopId={workshop.id}
+            venues={venues}
+            selectedVenues={selectedVenues}
+            onToggle={toggleSelectedVenue}
+            onNext={() => {
+              setIsComparingVenues(false)
+              setCurrentStep(3)
+            }}
           />
         )}
         {currentStep === 3 && <Step3RightPanel items={schedule} />}

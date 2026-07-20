@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { CalendarIcon, ChatIcon, MailIcon, SmsIcon } from '@/components/icons'
 import { listNotifications, type NotificationResponse, type Venue, type WorkshopResponse } from '@/api/workshop'
 import SelectedWorkshopSummary from './SelectedWorkshopSummary'
@@ -130,12 +131,12 @@ function Step5RightPanel({
         <p className="text-xs leading-relaxed text-slate-500">
           알림 발송까지 완료하면 워크숍 준비가 모두 끝나요! 이제 즐거운 워크숍만 남았어요. 🎉
         </p>
-        <button
-          type="button"
+        <Link
+          to={`/workshops/${workshop.id}/checklist`}
           className="mt-4 flex w-full items-center justify-center gap-1 rounded-full bg-violet-600 py-2 text-sm font-semibold text-white hover:bg-violet-700"
         >
           워크숍 체크리스트 보기
-        </button>
+        </Link>
       </div>
     </>
   )

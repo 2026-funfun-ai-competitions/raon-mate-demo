@@ -21,6 +21,7 @@ function Step2PlaceRecommendation({
   onToggle,
   onVenuesLoaded,
   onEditWorkshop,
+  onCompare,
 }: {
   workshopId: string
   initialVenues: Venue[]
@@ -30,6 +31,7 @@ function Step2PlaceRecommendation({
   onToggle: (venue: Venue) => void
   onVenuesLoaded: (venues: Venue[]) => void
   onEditWorkshop: () => void
+  onCompare: () => void
 }) {
   const [venues, setVenues] = useState<Venue[]>(initialVenues)
   const [isLoading, setIsLoading] = useState(initialVenues.length === 0)
@@ -281,6 +283,14 @@ function Step2PlaceRecommendation({
             이전 단계로
           </button>
           <span className="text-sm text-slate-500">{selectedIds.length}곳 선택됨</span>
+          <button
+            type="button"
+            onClick={onCompare}
+            disabled={venues.length === 0}
+            className="flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+          >
+            비교하기
+          </button>
         </div>
         <div className="flex flex-col items-end gap-1">
           {selectionError && <p className="text-xs text-red-500">{selectionError}</p>}

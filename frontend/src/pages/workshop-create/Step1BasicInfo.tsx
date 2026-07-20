@@ -21,6 +21,15 @@ function inputClass(hasError: boolean) {
   }`
 }
 
+function formatNumber(value: number | '') {
+  return value === '' ? '' : value.toLocaleString()
+}
+
+function parseNumberInput(raw: string): number | '' {
+  const digitsOnly = raw.replace(/[^0-9]/g, '')
+  return digitsOnly === '' ? '' : Number(digitsOnly)
+}
+
 function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => void }) {
   const [title, setTitle] = useState('')
   const [expectedParticipants, setExpectedParticipants] = useState<number | ''>('')
@@ -33,6 +42,15 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  function clearFieldError(field: keyof FieldErrors) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+  }
 
   function validate(): FieldErrors {
     const errors: FieldErrors = {}
@@ -113,7 +131,10 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
           <input
             type="text"
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value)
+              clearFieldError('title')
+            }}
             placeholder="예: 2025 하반기 팀 워크숍"
             className={inputClass(Boolean(fieldErrors.title))}
           />
@@ -126,9 +147,10 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
             <input
               type="number"
               value={expectedParticipants}
-              onChange={(event) =>
+              onChange={(event) => {
                 setExpectedParticipants(event.target.value === '' ? '' : Number(event.target.value))
-              }
+                clearFieldError('expectedParticipants')
+              }}
               placeholder="0"
               className="w-full text-sm text-slate-800 outline-none"
             />
@@ -143,11 +165,13 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
           <div className={`flex items-center gap-2 ${inputClass(Boolean(fieldErrors.budgetPerPerson))}`}>
             <span className="flex-shrink-0 text-sm font-semibold text-slate-400">₩</span>
             <input
-              type="number"
-              value={budgetPerPerson}
-              onChange={(event) =>
-                setBudgetPerPerson(event.target.value === '' ? '' : Number(event.target.value))
-              }
+              type="text"
+              inputMode="numeric"
+              value={formatNumber(budgetPerPerson)}
+              onChange={(event) => {
+                setBudgetPerPerson(parseNumberInput(event.target.value))
+                clearFieldError('budgetPerPerson')
+              }}
               placeholder="0"
               className="w-full text-sm text-slate-800 outline-none"
             />
@@ -164,7 +188,10 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
           진행 방식
           <select
             value={workshopType}
-            onChange={(event) => setWorkshopType(event.target.value as WorkshopType | '')}
+            onChange={(event) => {
+              setWorkshopType(event.target.value as WorkshopType | '')
+              clearFieldError('workshopType')
+            }}
             className={inputClass(Boolean(fieldErrors.workshopType))}
           >
             <option value="">선택해주세요</option>
@@ -179,7 +206,10 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
           희망 지역
           <select
             value={preferredRegion}
-            onChange={(event) => setPreferredRegion(event.target.value)}
+            onChange={(event) => {
+              setPreferredRegion(event.target.value)
+              clearFieldError('preferredRegion')
+            }}
             className={inputClass(Boolean(fieldErrors.preferredRegion))}
           >
             <option value="">선택해주세요</option>
@@ -202,14 +232,21 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
             <input
               type="date"
               value={preferredStartDate}
-              onChange={(event) => setPreferredStartDate(event.target.value)}
+              onChange={(event) => {
+                setPreferredStartDate(event.target.value)
+                clearFieldError('preferredStartDate')
+                clearFieldError('preferredEndDate')
+              }}
               className="w-full text-xs text-slate-800 outline-none"
             />
             <span className="text-slate-300">~</span>
             <input
               type="date"
               value={preferredEndDate}
-              onChange={(event) => setPreferredEndDate(event.target.value)}
+              onChange={(event) => {
+                setPreferredEndDate(event.target.value)
+                clearFieldError('preferredEndDate')
+              }}
               className="w-full text-xs text-slate-800 outline-none"
             />
           </div>
