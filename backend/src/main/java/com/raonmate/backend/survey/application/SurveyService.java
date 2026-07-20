@@ -88,8 +88,9 @@ public class SurveyService {
             if (question.isRequired()) throw new IllegalArgumentException("필수 질문에 응답해주세요: " + question.getTitle());
             return;
         }
-        if ((question.getType() == QuestionType.SINGLE_CHOICE) && answer.values().size() != 1) {
-            throw new IllegalArgumentException("단일 선택 질문은 하나만 선택할 수 있습니다: " + question.getTitle());
+        if ((question.getType() == QuestionType.SINGLE_CHOICE || question.getType() == QuestionType.FREE_TEXT)
+                && answer.values().size() != 1) {
+            throw new IllegalArgumentException("단일 응답 질문은 하나만 입력할 수 있습니다: " + question.getTitle());
         }
         if (!question.getOptions().isEmpty() && !question.getOptions().containsAll(answer.values())) {
             throw new IllegalArgumentException("선택지에 없는 응답이 포함되어 있습니다: " + question.getTitle());

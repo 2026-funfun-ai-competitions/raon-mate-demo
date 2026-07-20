@@ -11,10 +11,10 @@ import java.util.UUID;
 public record SurveySubmitRequest(
         @NotBlank @Size(max = 100) String participantKey,
         @NotBlank @Size(max = 100) String participantName,
-        @NotEmpty List<@Valid AnswerRequest> answers
+        @NotEmpty @Size(max = 20) List<@Valid AnswerRequest> answers
 ) {
     public record AnswerRequest(
             @NotNull UUID questionId,
-            @NotNull List<@NotBlank @Size(max = 500) String> values
+            @NotNull @Size(max = 20) List<@NotBlank @Size(max = 500) String> values
     ) {}
 }
