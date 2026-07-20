@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CalendarIcon, LocationIcon, MoreVerticalIcon, PeopleIcon } from '@/components/icons'
-import type { WorkshopResponse, WorkshopStatus } from '@/api/workshop'
+import { getEffectiveStatus, type WorkshopResponse, type WorkshopStatus } from '@/api/workshop'
 
 const statusLabel: Record<WorkshopStatus, string> = {
   DRAFT: '작성 중',
@@ -49,16 +49,17 @@ function formatDateTime(isoStr: string) {
 }
 
 function WorkshopCard({ workshop, colorIndex }: { workshop: WorkshopResponse; colorIndex: number }) {
-  const isCompleted = workshop.status === 'PLAN_COMPLETED'
+  const effectiveStatus = getEffectiveStatus(workshop)
+  const isCompleted = effectiveStatus === 'PLAN_COMPLETED'
   const gradient = headerGradients[colorIndex % headerGradients.length]
 
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm">
       <div className={`relative h-24 flex-shrink-0 bg-gradient-to-br ${gradient}`}>
         <span
-          className={`absolute left-3 top-3 rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyle[workshop.status]}`}
+          className={`absolute left-3 top-3 rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyle[effectiveStatus]}`}
         >
-          {statusLabel[workshop.status]}
+          {statusLabel[effectiveStatus]}
         </span>
         <button
           type="button"

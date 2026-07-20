@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listWorkshops, type WorkshopResponse, type WorkshopStatus, type WorkshopType } from '@/api/workshop'
+import {
+  getEffectiveStatus,
+  listWorkshops,
+  type WorkshopResponse,
+  type WorkshopStatus,
+  type WorkshopType,
+} from '@/api/workshop'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, SearchIcon, SparkleIcon } from '@/components/icons'
 import WorkshopCard from './progress/WorkshopCard'
 
@@ -57,7 +63,7 @@ function ProgressPage() {
     const query = search.trim().toLowerCase()
     return workshops
       .filter((workshop) => {
-        if (statusFilter !== 'ALL' && workshop.status !== statusFilter) return false
+        if (statusFilter !== 'ALL' && getEffectiveStatus(workshop) !== statusFilter) return false
         if (typeFilter !== 'ALL' && workshop.workshopType !== typeFilter) return false
         if (!query) return true
         return (
@@ -74,7 +80,7 @@ function ProgressPage() {
   const pagedWorkshops = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   const totalCount = workshops.length
-  const completedCount = workshops.filter((w) => w.status === 'PLAN_COMPLETED').length
+  const completedCount = workshops.filter((w) => getEffectiveStatus(w) === 'PLAN_COMPLETED').length
   const inProgressCount = totalCount - completedCount
 
   return (

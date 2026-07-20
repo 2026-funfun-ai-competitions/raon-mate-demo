@@ -56,6 +56,14 @@ export interface WorkshopResponse {
   updatedAt: string
 }
 
+// 백엔드가 워크숍 상태를 자동으로 전이시키지 않아서, 워크숍 종료일이 지난 건
+// 화면에서는 "완료"로 간주한다. 이미 완료 처리된 건 그대로 둔다.
+export function getEffectiveStatus(workshop: WorkshopResponse): WorkshopStatus {
+  if (workshop.status === 'PLAN_COMPLETED') return 'PLAN_COMPLETED'
+  const today = new Date().toISOString().slice(0, 10)
+  return workshop.preferredEndDate < today ? 'PLAN_COMPLETED' : workshop.status
+}
+
 export interface VenueRecommendationRequest {
   latitude?: number
   longitude?: number
