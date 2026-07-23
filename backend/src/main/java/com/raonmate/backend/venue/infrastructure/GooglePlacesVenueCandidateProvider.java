@@ -4,12 +4,14 @@ import com.raonmate.backend.global.error.ExternalAiServiceException;
 import com.raonmate.backend.venue.application.VenueCandidate;
 import com.raonmate.backend.venue.application.VenueCandidateProvider;
 import com.raonmate.backend.venue.application.VenueRecommendationContext;
+import com.raonmate.backend.workshop.domain.WorkshopType;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -54,9 +56,13 @@ public class GooglePlacesVenueCandidateProvider implements VenueCandidateProvide
                     .body(request(context))
                     .retrieve()
                     .body(JsonNode.class);
-            List<VenueCandidate> candidates = parse(response);
+            List<VenueCandidate> candidates = filterByWorkshopType(parse(response), context);
             if (candidates.isEmpty()) {
-                throw new ExternalAiServiceException("조건에 맞는 실제 장소를 Google Maps에서 찾지 못했습니다.");
+                String message = context.workshopType() == WorkshopType.OVERNIGHT
+                        ? "해당 지역에서 숙박이 확인되는 호텔·리조트·연수원 후보를 찾지 못했어요. "
+                                + "지역을 넓히거나 당일형으로 변경해 주세요."
+                        : "조건에 맞는 실제 장소를 Google Maps에서 찾지 못했습니다.";
+                throw new IllegalArgumentException(message);
             }
             return candidates;
         } catch (ExternalAiServiceException exception) {
@@ -83,8 +89,31 @@ public class GooglePlacesVenueCandidateProvider implements VenueCandidateProvide
     private String searchQuery(VenueRecommendationContext context) {
         String region = text(context.departureLocation());
         String conditions = text(context.requiredConditions());
-        String type = context.workshopType() == null ? "" : context.workshopType().name();
-        return String.join(" ", List.of(region, "기업 워크숍 장소", type, conditions)).trim();
+        String venueType = context.workshopType() == WorkshopType.OVERNIGHT
+                ? "숙박 가능한 호텔 리조트 연수원"
+                : "기업 워크숍 장소";
+        return String.join(" ", List.of(region, venueType, conditions)).trim();
+    }
+
+    private List<VenueCandidate> filterByWorkshopType(
+            List<VenueCandidate> candidates, VenueRecommendationContext context) {
+        if (context.workshopType() != WorkshopType.OVERNIGHT) return candidates;
+        return candidates.stream().filter(this::isOvernightVenue).toList();
+    }
+
+    private boolean isOvernightVenue(VenueCandidate candidate) {
+        String value = (candidate.name() + " " + candidate.category()).toLowerCase(Locale.ROOT);
+        boolean excluded = containsAny(value, "뷔페", "공유 오피스", "공유오피스", "코워킹", "회의실", "음식점");
+        boolean overnight = containsAny(
+                value, "호텔", "리조트", "연수원", "펜션", "콘도", "숙박", "호스텔", "게스트하우스");
+        return overnight && !excluded;
+    }
+
+    private boolean containsAny(String value, String... keywords) {
+        for (String keyword : keywords) {
+            if (value.contains(keyword)) return true;
+        }
+        return false;
     }
 
     private String text(String value) {

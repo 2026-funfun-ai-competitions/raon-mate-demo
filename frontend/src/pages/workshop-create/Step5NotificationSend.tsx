@@ -1,21 +1,65 @@
 import { useState } from 'react'
 import { ArrowLeftIcon, EyeIcon, PaperclipIcon, PeopleIcon, SendIcon } from '@/components/icons'
-import { sendNotification } from '@/api/workshop'
+import { sendNotification, type ScheduleItem, type Venue, type WorkshopResponse } from '@/api/workshop'
 
-const defaultMessage = `안녕하세요, 라온인 여러분!
+function formatDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-')
+  return `${y}년 ${Number(m)}월 ${Number(d)}일`
+}
+
+function buildDefaultMessage(
+  workshop: WorkshopResponse,
+  selectedVenues: Venue[],
+  schedule: ScheduleItem[],
+): string {
+  const dateRange =
+    workshop.preferredStartDate === workshop.preferredEndDate
+      ? formatDate(workshop.preferredStartDate)
+      : `${formatDate(workshop.preferredStartDate)} ~ ${formatDate(workshop.preferredEndDate)}`
+
+  const venueText =
+    selectedVenues.length > 0
+      ? selectedVenues.map((v) => v.name).join(', ')
+      : '미정'
+
+  const budgetText = workshop.budgetPerPerson
+    ? `${workshop.budgetPerPerson.toLocaleString()}원`
+    : '미정'
+
+  let scheduleText = ''
+  if (schedule.length > 0) {
+    const byDate = new Map<string, ScheduleItem[]>()
+    for (const item of schedule) {
+      const list = byDate.get(item.date) ?? []
+      list.push(item)
+      byDate.set(item.date, list)
+    }
+    const lines: string[] = []
+    for (const [date, items] of byDate) {
+      lines.push(`\n  [${formatDate(date)}]`)
+      for (const item of items) {
+        const time = item.endTime ? `${item.startTime}~${item.endTime}` : item.startTime
+        lines.push(`  • ${time} ${item.title}`)
+      }
+    }
+    scheduleText = lines.join('\n')
+  }
+
+  return `안녕하세요, 라온인 여러분!
 
 다가오는 워크숍 일정을 안내드립니다.
 함께 소통하고 성장하는 의미있는 시간이 되길 기대합니다! 😊
 
-📅 일정:
-📍 장소:
-👥 참석 인원:
-💰 1인 예산:
-🎯 워크숍 목적:
-
+📅 일정: ${dateRange}
+📍 장소: ${venueText}
+👥 참석 인원: ${workshop.expectedParticipants}명
+💰 1인 예산: ${budgetText}
+🎯 워크숍 목적: ${workshop.purposeKeywords}
+${scheduleText ? `\n📋 세부 일정:${scheduleText}` : ''}
 자세한 내용은 아래 버튼을 통해 확인해주세요.
 
 감사합니다.`
+}
 
 const extraRecipientGroups = [
   { label: '운영진', count: 3, checked: false },
@@ -25,16 +69,20 @@ const extraRecipientGroups = [
 
 function Step5NotificationSend({
   workshopId,
-  expectedParticipants,
+  workshop,
+  selectedVenues,
+  schedule,
   onBack,
   onSent,
 }: {
   workshopId: string
-  expectedParticipants: number
+  workshop: WorkshopResponse
+  selectedVenues: Venue[]
+  schedule: ScheduleItem[]
   onBack: () => void
   onSent: () => void
 }) {
-  const [message, setMessage] = useState(defaultMessage)
+  const [message, setMessage] = useState(() => buildDefaultMessage(workshop, selectedVenues, schedule))
   const [sendTiming, setSendTiming] = useState<'now' | 'scheduled'>('now')
   const [isSending, setIsSending] = useState(false)
   const [sendResult, setSendResult] = useState<{ ok: boolean; message: string } | null>(null)
@@ -44,7 +92,7 @@ function Step5NotificationSend({
       setSendResult({ ok: false, message: '알림 메시지를 입력해주세요.' })
       return
     }
-    if (expectedParticipants < 1) {
+    if (workshop.expectedParticipants < 1) {
       setSendResult({ ok: false, message: '수신할 참석 인원이 없어요.' })
       return
     }
@@ -54,7 +102,7 @@ function Step5NotificationSend({
     try {
       await sendNotification(workshopId, {
         channel: 'SLACK',
-        recipientCount: expectedParticipants,
+        recipientCount: workshop.expectedParticipants,
         message,
       })
       setSendResult({ ok: true, message: '알림을 발송했어요!' })
@@ -155,7 +203,7 @@ function Step5NotificationSend({
                 명단 확인
               </button>
             </div>
-            <p className="mb-2 text-xs text-slate-500">참석자 {expectedParticipants}명</p>
+            <p className="mb-2 text-xs text-slate-500">참석자 {workshop.expectedParticipants}명</p>
             <label className="mb-2 flex items-center gap-2 text-xs text-slate-600">
               <input type="checkbox" defaultChecked className="h-4 w-4 accent-violet-600" />
               전체 선택
@@ -166,7 +214,7 @@ function Step5NotificationSend({
                   <input type="checkbox" defaultChecked className="h-4 w-4 accent-violet-600" />
                   참석자
                 </label>
-                <span className="text-slate-400">{expectedParticipants}명</span>
+                <span className="text-slate-400">{workshop.expectedParticipants}명</span>
               </li>
               {extraRecipientGroups.map(({ label, count, checked }) => (
                 <li key={label} className="flex items-center justify-between text-xs">

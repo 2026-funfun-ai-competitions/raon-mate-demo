@@ -32,6 +32,7 @@ public class VenueRecommendationService {
     private final SurveySubmissionRepository submissionRepository;
     private final VenueCandidateProvider candidateProvider;
     private final VenueRecommendationGenerator recommendationGenerator;
+    private final VenueRecommendationFeasibilityValidator feasibilityValidator;
     private final VenueRecommendationCache recommendationCache;
     private final VenueRecommendationSnapshotRepository snapshotRepository;
     private final ObjectMapper objectMapper;
@@ -66,6 +67,7 @@ public class VenueRecommendationService {
                 workshop.getPreferredStartDate(), workshop.getPreferredEndDate(), workshop.getPurposeKeywords(),
                 totalResponses, summaries,
                 request.latitude(), request.longitude(), request.resultLimit(), request.additionalRequest(), List.of());
+        feasibilityValidator.validate(context);
         return recommendationCache.getOrGenerate(cacheKey, workshopId, () -> {
             VenueRecommendationResponse response = recommendationGenerator.generate(
                     context.withCandidates(candidateProvider.search(context)));

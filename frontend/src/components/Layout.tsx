@@ -4,7 +4,6 @@ const navItems = [
   { to: '/', label: '홈', end: true },
   { to: '/workshops/new', label: '워크숍 만들기' },
   { to: '/progress', label: '진행 현황' },
-  { to: '/history', label: '히스토리' },
 ]
 
 function Layout() {

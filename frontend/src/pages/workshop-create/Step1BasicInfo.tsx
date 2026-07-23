@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CalendarIcon, ChevronRightIcon, PeopleIcon } from '@/components/icons'
 import { createWorkshop, type WorkshopResponse, type WorkshopType } from '@/api/workshop'
+import { getEndDate, PREFERRED_REGIONS } from './workshopFormOptions'
 
 type FieldErrors = Partial<
   Record<
@@ -135,7 +136,7 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
               setTitle(event.target.value)
               clearFieldError('title')
             }}
-            placeholder="예: 2025 하반기 팀 워크숍"
+            placeholder="예: 2026 본부 워크숍"
             className={inputClass(Boolean(fieldErrors.title))}
           />
           {fieldErrors.title && <span className="text-xs text-red-500">{fieldErrors.title}</span>}
@@ -189,8 +190,13 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
           <select
             value={workshopType}
             onChange={(event) => {
-              setWorkshopType(event.target.value as WorkshopType | '')
+              const nextWorkshopType = event.target.value as WorkshopType | ''
+              setWorkshopType(nextWorkshopType)
+              if (preferredStartDate) {
+                setPreferredEndDate(getEndDate(preferredStartDate, nextWorkshopType))
+              }
               clearFieldError('workshopType')
+              clearFieldError('preferredEndDate')
             }}
             className={inputClass(Boolean(fieldErrors.workshopType))}
           >
@@ -213,9 +219,9 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
             className={inputClass(Boolean(fieldErrors.preferredRegion))}
           >
             <option value="">선택해주세요</option>
-            <option>서울 근교</option>
-            <option>강원도</option>
-            <option>제주도</option>
+            {PREFERRED_REGIONS.map((region) => (
+              <option key={region}>{region}</option>
+            ))}
           </select>
           {fieldErrors.preferredRegion && (
             <span className="text-xs text-red-500">{fieldErrors.preferredRegion}</span>
@@ -233,7 +239,9 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
               type="date"
               value={preferredStartDate}
               onChange={(event) => {
-                setPreferredStartDate(event.target.value)
+                const nextStartDate = event.target.value
+                setPreferredStartDate(nextStartDate)
+                setPreferredEndDate(getEndDate(nextStartDate, workshopType))
                 clearFieldError('preferredStartDate')
                 clearFieldError('preferredEndDate')
               }}
@@ -243,6 +251,7 @@ function Step1BasicInfo({ onNext }: { onNext: (workshop: WorkshopResponse) => vo
             <input
               type="date"
               value={preferredEndDate}
+              min={preferredStartDate}
               onChange={(event) => {
                 setPreferredEndDate(event.target.value)
                 clearFieldError('preferredEndDate')

@@ -41,6 +41,9 @@ public class GeminiVenueRecommendationGenerator implements VenueRecommendationGe
             score는 조건 적합도를 나타내는 0~100 정수이며 서로 비교 가능해야 한다.
             장소 유형, 지역, 인원, 당일/숙박 조건을 근거로 통상적인 1인당 비용의 보수적인
             최소·최대 범위를 추정하라. 입력된 사용자 예산을 실제 가격의 근거로 사용하지 마라.
+            숙박형은 숙박비, 식비, 대관비를 모두 포함한 1인당 최소·최대 비용을 산정하라.
+            숙박이 확인되지 않은 공유오피스, 회의실, 식당, 뷔페는 숙박형 장소로 추천하지 마라.
+            사용자의 1인 예산보다 estimatedCostMinPerPerson이 큰 장소는 추천하지 마라.
             비용에 포함하거나 제외한다고 가정한 항목을 costAssumptions에 구체적으로 작성하라.
             장소별 reasons는 최대 2개, cautions는 최대 2개, costAssumptions는 최대 3개만 작성하라.
             각 문장은 공백 포함 80자 이내로 간결하게 작성하라.
@@ -158,17 +161,26 @@ public class GeminiVenueRecommendationGenerator implements VenueRecommendationGe
         HashSet<String> placeIds = new HashSet<>();
         for (GroundedVenue item : grounded) {
             if (venues.size() >= context.maxResults() || !placeIds.add(item.candidate().placeId())) continue;
-            venues.add(validateAndConvert(
-                    item.venue(), item.candidate(), venues.size() + 1, context.expectedParticipants()));
+            VenueRecommendationResponse.Venue converted = validateAndConvert(
+                    item.venue(), item.candidate(), venues.size() + 1, context.expectedParticipants());
+            if (exceedsBudget(converted, context.budgetPerPerson())) continue;
+            venues.add(converted);
         }
         if (venues.isEmpty()) {
-            throw new IllegalArgumentException("중복되지 않은 추천 장소가 없습니다.");
+            throw new IllegalArgumentException(
+                    "현재 지역·일정·예산을 모두 만족하는 실제 장소를 찾지 못했어요. "
+                            + "예산을 높이거나 지역을 넓힌 뒤 다시 시도해 주세요.");
         }
         List<VenueRecommendationResponse.MapSource> sources = venues.stream()
                 .map(venue -> new VenueRecommendationResponse.MapSource(
                         venue.name(), venue.mapUri(), venue.placeId()))
                 .toList();
         return new VenueRecommendationResponse(List.copyOf(venues), sources, model, Instant.now());
+    }
+
+    private boolean exceedsBudget(VenueRecommendationResponse.Venue venue, BigDecimal budgetPerPerson) {
+        return budgetPerPerson != null
+                && BigDecimal.valueOf(venue.estimatedCostMinPerPerson()).compareTo(budgetPerPerson) > 0;
     }
 
     private VenueRecommendationResponse.Venue validateAndConvert(

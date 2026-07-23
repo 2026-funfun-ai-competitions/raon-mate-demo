@@ -40,7 +40,6 @@ function WorkshopCreatePage() {
   const [isResuming, setIsResuming] = useState(Boolean(routeWorkshopId))
   const [resumeError, setResumeError] = useState<string | null>(null)
   const [isEditingWorkshop, setIsEditingWorkshop] = useState(false)
-  const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0)
   const [isComparingVenues, setIsComparingVenues] = useState(false)
 
   useEffect(() => {
@@ -213,9 +212,11 @@ function WorkshopCreatePage() {
         {workshop && currentStep === 5 && (
           <Step5NotificationSend
             workshopId={workshop.id}
-            expectedParticipants={workshop.expectedParticipants}
+            workshop={workshop}
+            selectedVenues={selectedVenues}
+            schedule={schedule}
             onBack={() => setCurrentStep(4)}
-            onSent={() => setNotificationsRefreshKey((key) => key + 1)}
+            onSent={() => {}}
           />
         )}
       </div>
@@ -254,7 +255,6 @@ function WorkshopCreatePage() {
             workshop={workshop}
             venue={primaryVenue}
             onEditWorkshop={() => setIsEditingWorkshop(true)}
-            refreshKey={notificationsRefreshKey}
           />
         )}
       </div>

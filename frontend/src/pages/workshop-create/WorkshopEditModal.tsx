@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { updateWorkshop, type WorkshopResponse, type WorkshopType } from '@/api/workshop'
+import { getEndDate, PREFERRED_REGIONS } from './workshopFormOptions'
 
 function WorkshopEditModal({
   workshop,
@@ -85,7 +86,11 @@ function WorkshopEditModal({
             진행 방식
             <select
               value={workshopType}
-              onChange={(event) => setWorkshopType(event.target.value as WorkshopType)}
+              onChange={(event) => {
+                const nextWorkshopType = event.target.value as WorkshopType
+                setWorkshopType(nextWorkshopType)
+                setPreferredEndDate(getEndDate(preferredStartDate, nextWorkshopType))
+              }}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800"
             >
               <option value="OVERNIGHT">숙박형 (1박 2일)</option>
@@ -99,9 +104,9 @@ function WorkshopEditModal({
               onChange={(event) => setPreferredRegion(event.target.value)}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800"
             >
-              <option>서울 근교</option>
-              <option>강원도</option>
-              <option>제주도</option>
+              {PREFERRED_REGIONS.map((region) => (
+                <option key={region}>{region}</option>
+              ))}
             </select>
           </label>
         </div>
@@ -112,7 +117,11 @@ function WorkshopEditModal({
             <input
               type="date"
               value={preferredStartDate}
-              onChange={(event) => setPreferredStartDate(event.target.value)}
+              onChange={(event) => {
+                const nextStartDate = event.target.value
+                setPreferredStartDate(nextStartDate)
+                setPreferredEndDate(getEndDate(nextStartDate, workshopType))
+              }}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800"
             />
           </label>
@@ -121,6 +130,7 @@ function WorkshopEditModal({
             <input
               type="date"
               value={preferredEndDate}
+              min={preferredStartDate}
               onChange={(event) => setPreferredEndDate(event.target.value)}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800"
             />
